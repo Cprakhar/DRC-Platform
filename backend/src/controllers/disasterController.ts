@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../utils/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
 
 // Helper to get current ISO timestamp
 const now = () => new Date().toISOString();
@@ -8,6 +9,7 @@ const now = () => new Date().toISOString();
 export const createDisaster = async (req: Request, res: Response) => {
   const { title, location_name, location, description, tags, owner_id } = req.body;
   if (!title || !location_name || !description || !tags || !owner_id) {
+    logger.warn({ event: 'disaster_create_missing_fields', body: req.body });
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }
@@ -23,7 +25,11 @@ export const createDisaster = async (req: Request, res: Response) => {
     audit_trail: [{ action: 'create', user_id: owner_id, timestamp: now() }],
   };
   const { data, error } = await supabase.from('disasters').insert([disaster]).select().single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    logger.error({ event: 'disaster_create_error', error: error.message, disaster });
+    return res.status(500).json({ error: error.message });
+  }
+  logger.info({ event: 'disaster_created', id: disaster.id, title });
   res.status(201).json(data);
 };
 
@@ -34,7 +40,11 @@ export const getDisasters = async (req: Request, res: Response) => {
     query = query.contains('tags', [tag]);
   }
   const { data, error } = await query;
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    logger.error({ event: 'disaster_get_error', error: error.message, tag });
+    return res.status(500).json({ error: error.message });
+  }
+  logger.info({ event: 'disaster_listed', count: data?.length, tag });
   res.json(data);
 };
 
@@ -43,7 +53,10 @@ export const updateDisaster = async (req: Request, res: Response) => {
   const { title, location_name, location, description, tags, owner_id } = req.body;
   // Fetch current disaster
   const { data: current, error: fetchError } = await supabase.from('disasters').select('*').eq('id', id).single();
-  if (fetchError || !current) return res.status(404).json({ error: 'Not found' });
+  if (fetchError || !current) {
+    logger.warn({ event: 'disaster_update_not_found', id });
+    return res.status(404).json({ error: 'Not found' });
+  }
   const updated = {
     ...current,
     title: title ?? current.title,
@@ -57,13 +70,21 @@ export const updateDisaster = async (req: Request, res: Response) => {
     ],
   };
   const { data, error } = await supabase.from('disasters').update(updated).eq('id', id).select().single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    logger.error({ event: 'disaster_update_error', error: error.message, id });
+    return res.status(500).json({ error: error.message });
+  }
+  logger.info({ event: 'disaster_updated', id });
   res.json(data);
 };
 
 export const deleteDisaster = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { data, error } = await supabase.from('disasters').delete().eq('id', id).select().single();
-  if (error) return res.status(404).json({ error: error.message });
+  if (error) {
+    logger.error({ event: 'disaster_delete_error', error: error.message, id });
+    return res.status(404).json({ error: error.message });
+  }
+  logger.info({ event: 'disaster_deleted', id });
   res.json({ message: 'Deleted', id: data.id });
 };

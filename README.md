@@ -4,19 +4,21 @@ A backend-heavy MERN stack application for disaster response, featuring real-tim
 
 ## Features
 - Disaster CRUD (Supabase/PostgreSQL)
-- Location extraction & geocoding (Google Gemini API, mapping service)
-- Real-time social media monitoring (mock/real Twitter, Bluesky)
+- Location extraction (Google Gemini API) & geocoding (OpenStreetMap Nominatim)
+- Real-time social media monitoring (Bluesky API with mock fallback, Supabase caching)
 - Geospatial resource mapping (Supabase geospatial queries)
 - Official updates aggregation (web scraping)
 - Image verification (Google Gemini API)
 - WebSockets for real-time updates
-- Supabase caching for API responses
+- Supabase caching for API responses (TTL: 1 hour)
+- Structured logging with Pino
 
 ## Tech Stack
 - Node.js, Express.js, TypeScript
 - Supabase (PostgreSQL, JavaScript SDK)
 - Socket.IO
-- Google Gemini API, mapping service (Google Maps/Mapbox/OSM)
+- Google Gemini API, OpenStreetMap Nominatim
+- Pino (structured logging)
 - (Frontend: minimal, not included here)
 
 ## Setup
@@ -28,6 +30,9 @@ A backend-heavy MERN stack application for disaster response, featuring real-tim
    ```env
    SUPABASE_URL=your_supabase_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
+   GEMINI_API_KEY=your_gemini_api_key
+   BLUESKY_IDENTIFIER=your_bluesky_username
+   BLUESKY_PASSWORD=your_bluesky_password
    PORT=4000
    ```
 3. Build and run the backend:
@@ -43,16 +48,19 @@ A backend-heavy MERN stack application for disaster response, featuring real-tim
 - `GET /disasters?tag=...` — List disasters (filter by tag)
 - `PUT /disasters/:id` — Update disaster
 - `DELETE /disasters/:id` — Delete disaster
-- (More endpoints: social media, resources, updates, verification, geocoding)
+- `GET /disasters/:id/social-media` — Get social media posts (Bluesky, fallback to mock, cached)
+- `POST /geocode` — Extract and geocode location from description (Gemini + OSM, cached)
 
 ## Project Structure
 - `/backend/src/controllers` — API controllers
 - `/backend/src/models` — Data models
 - `/backend/src/routes` — Express routes
-- `/backend/src/utils` — Utilities (Supabase client, etc.)
+- `/backend/src/utils` — Utilities (Supabase client, logger, etc.)
 
 ## Notes
 - All disaster data is stored in Supabase/PostgreSQL.
+- Social media and geocode results are cached in Supabase for 1 hour.
+- Structured logging is enabled for all major events and errors.
 - See `tech-spec.md` for full requirements and sample data.
 
 ---

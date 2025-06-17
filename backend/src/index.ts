@@ -4,7 +4,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import disasterRoutes from './routes/disasterRoutes';
-import dbDisasterRoutes from './routes/dbDisasterRoutes';
+import socialMediaRoutes from './routes/socialMediaRoutes';
+import geocodeRoutes from './routes/geocodeRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -23,7 +24,8 @@ app.use(express.json());
 
 // Disaster CRUD routes
 app.use('/disasters', disasterRoutes);
-app.use('/db-disasters', dbDisasterRoutes);
+app.use('/disasters', socialMediaRoutes);
+app.use('/geocode', geocodeRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
