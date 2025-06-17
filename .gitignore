@@ -1,0 +1,32 @@
+# Node
+node_modules/
+dist/
+.env
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Monorepo
+/backend/node_modules/
+/frontend/node_modules/
+/backend/dist/
+/frontend/dist/
+
+# Build
+*.tsbuildinfo
+
+# Misc
+*.log
+
+# Git
+.git/
