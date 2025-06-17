@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Request, Response } from 'express';
 import { supabase } from '../utils/supabaseClient';
 import logger from '../utils/logger';
+import { GoogleGenAI } from "@google/genai";
 
 interface GeminiApiResponse {
   candidates?: Array<{
@@ -17,19 +18,22 @@ interface OSMGeocodeResult {
   display_name: string;
 }
 
-// Helper to call Gemini API for location extraction
+// Helper to call Gemini API for location extraction using @google/genai
 async function extractLocationWithGemini(description: string): Promise<string | null> {
   try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!GEMINI_API_KEY) throw new Error('Missing Gemini API key');
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY;
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     // Enhanced prompt for Gemini API
     const prompt = `Extract only the location name from the following disaster description. Respond with just the location name, no commentary or extra words.\n\nExample:\nInput: Heavy flooding in Manhattan, NYC\nOutput: Manhattan, NYC\n\nInput: ${description}\nOutput:`;
-    const response = await axios.post<GeminiApiResponse>(url, {
-      contents: [{ parts: [{ text: prompt }] }]
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        { text: prompt }
+      ]
     });
-    logger.info({ event: 'gemini_api_response', description, gemini_raw: response.data });
-    const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    logger.info({ event: 'gemini_api_response', description, gemini_raw: result });
+    const text = result.text;
     if (text && typeof text === 'string') {
       return text.trim();
     }

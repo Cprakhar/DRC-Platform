@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import disasterRoutes from './routes/disasterRoutes';
 import socialMediaRoutes from './routes/socialMediaRoutes';
 import geocodeRoutes from './routes/geocodeRoutes';
+import resourceRoutes from './routes/resourceRoutes';
+import officialUpdatesRoutes from './routes/officialUpdatesRoutes';
+import imageVerificationRoutes from './routes/imageVerificationRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +28,9 @@ app.use(express.json());
 // Disaster CRUD routes
 app.use('/disasters', disasterRoutes);
 app.use('/disasters', socialMediaRoutes);
+app.use('/disasters', resourceRoutes);
+app.use('/disasters', officialUpdatesRoutes);
+app.use('/disasters', imageVerificationRoutes);
 app.use('/geocode', geocodeRoutes);
 
 // Basic health check route

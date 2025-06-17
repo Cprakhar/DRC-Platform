@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@atproto/api": "^0.15.15",
+    "@google/genai": "^1.5.1",
     "@supabase/supabase-js": "^2.50.0",
     "@types/axios": "^0.9.36",
     "@types/pino": "^7.0.4",
@@ -15,10 +16,12 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/cheerio": "^0.22.35",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.3",
     "@types/socket.io": "^3.0.1",
+    "cheerio": "^1.1.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
