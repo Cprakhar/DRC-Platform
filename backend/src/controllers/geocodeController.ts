@@ -4,14 +4,6 @@ import { supabase } from '../utils/supabaseClient';
 import logger from '../utils/logger';
 import { GoogleGenAI } from "@google/genai";
 
-interface GeminiApiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>
-    }
-  }>;
-}
-
 interface OSMGeocodeResult {
   lat: string;
   lon: string;

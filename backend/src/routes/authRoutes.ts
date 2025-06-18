@@ -1,12 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { verifyImage } from '../controllers/imageVerificationController';
-import { rateLimit } from '../middleware/rateLimit';
+import { register, login } from '../controllers/authController';
 
 const router = Router();
 
 const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-router.post('/:id/verify-image', function (req, res, next) { rateLimit(req, res, next); }, asyncHandler(verifyImage));
+router.post('/register', asyncHandler(register));
+router.post('/login', asyncHandler(login));
 
 export default router;

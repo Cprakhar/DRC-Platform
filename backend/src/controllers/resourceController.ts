@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../utils/supabaseClient';
 import logger from '../utils/logger';
+import { getIO } from '../utils/socket';
 
 const RESOURCE_RADIUS_METERS = 10000; // 10km
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -44,6 +45,7 @@ export const getNearbyResources = async (req: Request, res: Response) => {
       expires_at: new Date(Date.now() + CACHE_TTL_MS).toISOString()
     });
     logger.info({ event: 'resource_query_success', disaster_id: id, count: data.length });
+    getIO().emit('resources_updated', { disaster_id: id, resources: data });
     res.json({ resources: data });
   } catch (err: any) {
     logger.error({ event: 'resource_query_exception', disaster_id: id, error: err.message });

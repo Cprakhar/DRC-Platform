@@ -5,15 +5,16 @@ import {
   updateDisaster,
   deleteDisaster
 } from '../controllers/disasterController';
+import { authenticate, requireRole } from '../middleware/auth';
 
 const router = Router();
 
 const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-router.post('/', asyncHandler(createDisaster));
+router.post('/', authenticate, asyncHandler(createDisaster));
 router.get('/', asyncHandler(getDisasters));
-router.put('/:id', asyncHandler(updateDisaster));
-router.delete('/:id', asyncHandler(deleteDisaster));
+router.put('/:id', authenticate, asyncHandler(updateDisaster));
+router.delete('/:id', authenticate, requireRole('admin'), asyncHandler(deleteDisaster));
 
 export default router;

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import { supabase } from '../utils/supabaseClient';
 import logger from '../utils/logger';
+import { getIO } from '../utils/socket';
 
 dotenv.config();
 
@@ -31,6 +32,29 @@ const mockSocialMediaPosts = [
 
 const CACHE_TTL_MINUTES = 60;
 
+// Priority keywords for alerting
+const PRIORITY_KEYWORDS = [
+  'urgent', 'sos', 'help', 'emergency', 'asap', 'immediate', 'trapped', 'rescue', 'critical', 'evacuate', 'danger', 'please assist', 'need food', 'need water', 'no power', 'no signal', 'collapse', 'injured', 'medical', 'distress', 'hurry', 'as soon as possible'
+];
+
+function classifyPriority(postText: string): { priority: boolean; priority_reason?: string } {
+  const lower = postText.toLowerCase();
+  for (const keyword of PRIORITY_KEYWORDS) {
+    if (lower.includes(keyword)) {
+      return { priority: true, priority_reason: `Matched keyword: ${keyword}` };
+    }
+  }
+  return { priority: false };
+}
+
+// Enhance posts with priority classification
+function annotatePosts(posts: any[]): any[] {
+  return posts.map(post => {
+    const { priority, priority_reason } = classifyPriority(post.post);
+    return { ...post, priority, priority_reason };
+  });
+}
+
 // GET /disasters/:id/social-media
 export const getSocialMedia = async (req: Request, res: Response) => {
   const disasterId = req.params.id;
@@ -47,7 +71,9 @@ export const getSocialMedia = async (req: Request, res: Response) => {
   const now = new Date();
   if (cacheData && new Date(cacheData.expires_at) > now) {
     logger.info({ event: 'social_media_cache_hit', disasterId, keyword });
-    return res.json({ disaster_id: disasterId, posts: cacheData.value.posts, source: cacheData.value.source, cached: true });
+    // Annotate cached posts if not already annotated
+    const posts = annotatePosts(cacheData.value.posts || []);
+    return res.json({ disaster_id: disasterId, posts, source: cacheData.value.source, cached: true });
   }
 
   // 2. Try Bluesky API
@@ -59,17 +85,19 @@ export const getSocialMedia = async (req: Request, res: Response) => {
   try {
     await agent.login({ identifier: BLUESKY_IDENTIFIER, password: BLUESKY_PASSWORD });
     const timeline = await agent.getTimeline({ limit: 10 });
-    const posts = (timeline.data.feed || [])
+    let posts = (timeline.data.feed || [])
       .filter((item: any) => item.post?.record?.text?.toLowerCase().includes(keyword.toLowerCase()))
       .map((item: any) => ({
         post: item.post.record.text,
         user: item.post.author.handle,
         timestamp: item.post.record.createdAt
       }));
+    posts = annotatePosts(posts);
     let result;
     if (!posts.length) {
       logger.info({ event: 'social_media_no_bluesky_posts', disasterId, keyword });
-      result = { disaster_id: disasterId, posts: mockSocialMediaPosts, source: 'mock' };
+      const mockPosts = annotatePosts(mockSocialMediaPosts);
+      result = { disaster_id: disasterId, posts: mockPosts, source: 'mock' };
     } else {
       logger.info({ event: 'social_media_bluesky_posts', disasterId, keyword, count: posts.length });
       result = { disaster_id: disasterId, posts, source: 'bluesky' };
@@ -81,15 +109,19 @@ export const getSocialMedia = async (req: Request, res: Response) => {
       expires_at: new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000).toISOString()
     });
     logger.info({ event: 'social_media_cache_set', disasterId, keyword });
+    // Emit real-time update
+    getIO().emit('social_media_updated', { disaster_id: disasterId, posts: result.posts, source: result.source });
     return res.json(result);
   } catch (err: any) {
     logger.error({ event: 'social_media_bluesky_error', disasterId, keyword, error: err.message });
     // 4. On error, fallback to cache or mock
     if (cacheData && cacheData.value) {
       logger.info({ event: 'social_media_cache_fallback', disasterId, keyword });
-      return res.json({ disaster_id: disasterId, posts: cacheData.value.posts, source: cacheData.value.source, cached: true });
+      const posts = annotatePosts(cacheData.value.posts || []);
+      return res.json({ disaster_id: disasterId, posts, source: cacheData.value.source, cached: true });
     }
     logger.info({ event: 'social_media_mock_fallback', disasterId, keyword });
-    return res.json({ disaster_id: disasterId, posts: mockSocialMediaPosts, source: 'mock' });
+    const mockPosts = annotatePosts(mockSocialMediaPosts);
+    return res.json({ disaster_id: disasterId, posts: mockPosts, source: 'mock' });
   }
 };

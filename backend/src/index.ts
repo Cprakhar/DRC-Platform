@@ -9,6 +9,10 @@ import geocodeRoutes from './routes/geocodeRoutes';
 import resourceRoutes from './routes/resourceRoutes';
 import officialUpdatesRoutes from './routes/officialUpdatesRoutes';
 import imageVerificationRoutes from './routes/imageVerificationRoutes';
+import externalResourceRoutes from './routes/externalResourceRoutes';
+import authRoutes from './routes/authRoutes';
+import reportRoutes from './routes/reportRoutes';
+import { setIO } from './utils/socket';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +26,8 @@ const io = new SocketIOServer(server, {
   }
 });
 
+setIO(io);
+
 app.use(cors());
 app.use(express.json());
 
@@ -31,7 +37,10 @@ app.use('/disasters', socialMediaRoutes);
 app.use('/disasters', resourceRoutes);
 app.use('/disasters', officialUpdatesRoutes);
 app.use('/disasters', imageVerificationRoutes);
+app.use('/disasters', externalResourceRoutes);
+app.use('/disasters', reportRoutes);
 app.use('/geocode', geocodeRoutes);
+app.use('/auth', authRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

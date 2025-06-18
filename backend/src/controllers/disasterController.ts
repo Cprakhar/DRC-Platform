@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { supabase } from '../utils/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
+import { getIO } from '../utils/socket';
+import { AuthRequest } from '../middleware/auth';
 
 // Helper to get current ISO timestamp
 const now = () => new Date().toISOString();
@@ -30,6 +32,7 @@ export const createDisaster = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
   logger.info({ event: 'disaster_created', id: disaster.id, title });
+  getIO().emit('disaster_updated', { action: 'create', disaster: data });
   res.status(201).json(data);
 };
 
@@ -49,6 +52,7 @@ export const getDisasters = async (req: Request, res: Response) => {
 };
 
 export const updateDisaster = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   const { id } = req.params;
   const { title, location_name, location, description, tags, owner_id } = req.body;
   // Fetch current disaster
@@ -56,6 +60,11 @@ export const updateDisaster = async (req: Request, res: Response) => {
   if (fetchError || !current) {
     logger.warn({ event: 'disaster_update_not_found', id });
     return res.status(404).json({ error: 'Not found' });
+  }
+  // Only owner can update
+  if (!authReq.user || authReq.user.id !== current.owner_id) {
+    logger.warn({ event: 'disaster_update_forbidden', id, user: authReq.user?.id });
+    return res.status(403).json({ error: 'Only the owner can update this disaster' });
   }
   const updated = {
     ...current,
@@ -75,6 +84,7 @@ export const updateDisaster = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
   logger.info({ event: 'disaster_updated', id });
+  getIO().emit('disaster_updated', { action: 'update', disaster: data });
   res.json(data);
 };
 
@@ -86,5 +96,6 @@ export const deleteDisaster = async (req: Request, res: Response) => {
     return res.status(404).json({ error: error.message });
   }
   logger.info({ event: 'disaster_deleted', id });
+  getIO().emit('disaster_updated', { action: 'delete', disaster: data });
   res.json({ message: 'Deleted', id: data.id });
 };
