@@ -5,9 +5,13 @@ import logger from '../utils/logger';
 import { getIO } from '../utils/socket';
 import { AuthRequest } from '../middleware/auth';
 import { uploadImageToGCS } from '../utils/gcs';
+import { autoPopulateResourcesForDisasterId } from './resourceController';
 
 // Helper to get current ISO timestamp
 const now = () => new Date().toISOString();
+
+// Utility to auto-populate resources for a disaster (no Express req/res dependency)
+// (already imported above)
 
 export const createDisaster = async (req: Request, res: Response) => {
   const { title, location_name, location, description, tags, owner_id } = req.body;
@@ -42,6 +46,10 @@ export const createDisaster = async (req: Request, res: Response) => {
   }
   logger.info({ event: 'disaster_created', id: disaster.id, title });
   getIO().emit('disaster_updated', { action: 'create', disaster: data });
+  // Auto-populate resources in the background (modular, robust)
+  autoPopulateResourcesForDisasterId(disaster.id).catch(err => {
+    logger.error({ event: 'auto_populate_background_error', id: disaster.id, error: err instanceof Error ? err.message : String(err) });
+  });
   res.status(201).json(data);
 };
 

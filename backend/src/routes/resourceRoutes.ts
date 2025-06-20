@@ -11,8 +11,8 @@ const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFuncti
 // Admin-only: get all resources
 router.get('/', authenticate, requireRole('admin'), asyncHandler(require('../controllers/resourceController').getAllResources));
 
-// Admin-only: auto-populate resources for a disaster
-router.post('/:id/auto-populate', authenticate, requireRole('admin'), asyncHandler(require('../controllers/resourceController').autoPopulateResources));
+// Authenticated users: auto-populate resources for a disaster
+router.post('/:id/auto-populate', authenticate, asyncHandler(require('../controllers/resourceController').autoPopulateResources));
 
 // Disaster-specific resource endpoints
 router.get('/:id/resources', function (req, res, next) { rateLimit(req, res, next); }, asyncHandler(getNearbyResources));

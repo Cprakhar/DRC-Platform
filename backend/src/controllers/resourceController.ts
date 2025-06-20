@@ -177,9 +177,8 @@ export const getAllResources = async (req: Request, res: Response) => {
   }
 };
 
-// POST /resources/:id/auto-populate (admin only)
-export const autoPopulateResources = async (req: Request, res: Response) => {
-  const { id } = req.params;
+// Utility to auto-populate resources for a disaster (no Express req/res dependency)
+export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ inserted?: any[]; message?: string; error?: string }> {
   // 1. Get disaster location as GeoJSON
   const { data: disaster, error: disasterError } = await supabase
     .from('disasters')
@@ -188,15 +187,13 @@ export const autoPopulateResources = async (req: Request, res: Response) => {
     .single();
   if (disasterError || !disaster) {
     logger.warn({ event: 'auto_populate_no_disaster', id, error: disasterError?.message });
-    return res.status(404).json({ error: 'Disaster not found' });
+    return { error: 'Disaster not found' };
   }
-  // Convert PostGIS geometry to GeoJSON using ST_AsGeoJSON
   let coordinates;
   try {
     const { data: geo, error: geoError } = await supabase.rpc('get_disaster_with_wkt', { disaster_id: id });
     logger.info({ event: 'debug_wkt_query', geo, geoError });
     if (geoError || !geo || !geo[0]?.location_wkt) throw new Error('No WKT');
-    // Parse WKT: POINT(lon lat)
     const match = geo[0].location_wkt.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
     logger.info({ event: 'debug_wkt_parse', wkt: geo[0].location_wkt, match });
     if (!match) throw new Error('Invalid WKT');
@@ -204,10 +201,9 @@ export const autoPopulateResources = async (req: Request, res: Response) => {
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
     logger.error({ event: 'debug_location_error', error: errMsg });
-    return res.status(400).json({ error: 'Disaster location missing or invalid' });
+    return { error: 'Disaster location missing or invalid' };
   }
   const [lon, lat] = coordinates;
-  // 2. Query OSM Overpass API for hospitals, shelters, etc. within 10km
   const overpassUrl = 'https://overpass-api.de/api/interpreter';
   const query = `
     [out:json][timeout:25];
@@ -218,19 +214,14 @@ export const autoPopulateResources = async (req: Request, res: Response) => {
     );
     out center;
   `;
-  // To EXCLUDE animal_shelter, use regex with negative lookahead is not supported in Overpass QL,
-  // so we must explicitly list only the desired amenities and NOT use a pattern that matches animal_shelter.
-  // The current regex is correct: it will NOT match animal_shelter ("animal_shelter" is not matched by "shelter").
-  // No change needed unless you want to fetch "animal_shelter" separately.
   let osmData: { elements: any[] } = { elements: [] };
   try {
     const resp = await axios.post(overpassUrl, query, { headers: { 'Content-Type': 'text/plain' } });
     osmData = resp.data as { elements: any[] };
   } catch (err: any) {
     logger.error({ event: 'osm_query_failed', error: err.message });
-    return res.status(502).json({ error: 'Failed to query OSM' });
+    return { error: 'Failed to query OSM' };
   }
-  // 3. Parse, de-duplicate by name, filter vague names, and limit to 10 per type
   const vagueNames = ['shelter', 'pharmacy', 'hospital', 'police', 'fire_station'];
   let resources = (osmData.elements || []).map((el: any) => {
     const lat = el.lat || el.center?.lat;
@@ -247,16 +238,13 @@ export const autoPopulateResources = async (req: Request, res: Response) => {
       _type: type
     } : null;
   }).filter((r: any) => r);
-  // De-duplicate by name only
   const seen = new Set();
   resources = resources.filter((r: any) => {
     if (seen.has(r._dedup_key)) return false;
     seen.add(r._dedup_key);
     return true;
   });
-  // Filter out resources with vague names
   resources = resources.filter((r: any) => !vagueNames.includes(r.name.toLowerCase().trim()));
-  // Limit to 10 per type
   const typeCounts: Record<string, number> = {};
   resources = resources.filter((r: any) => {
     typeCounts[r._type] = (typeCounts[r._type] || 0) + 1;
@@ -264,14 +252,34 @@ export const autoPopulateResources = async (req: Request, res: Response) => {
   });
   resources.forEach((r: any) => { delete r._dedup_key; delete r._type; });
   if (!resources.length) {
-    return res.status(200).json({ message: 'No resources found in area.' });
+    return { message: 'No resources found in area.' };
   }
   const { data: inserted, error: insertError } = await supabase.from('resources').insert(resources).select();
   if (insertError) {
     logger.error({ event: 'resource_bulk_insert_error', error: insertError.message });
-    return res.status(500).json({ error: insertError.message });
+    return { error: insertError.message };
   }
   logger.info({ event: 'resources_auto_populated', disaster_id: id, count: inserted.length });
   getIO().emit('resources_updated', { disaster_id: id });
-  res.status(201).json({ inserted });
+  // Invalidate all resource caches for this disaster (any lat/lon)
+  await supabase.from('cache').delete().like('key', `resources:${id}:%`);
+  return { inserted };
+}
+
+// POST /resources/:id/auto-populate (admin only)
+export const autoPopulateResources = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = await autoPopulateResourcesForDisasterId(id);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    if (result.message) {
+      return res.status(200).json({ message: result.message });
+    }
+    return res.status(201).json({ inserted: result.inserted });
+  } catch (err: any) {
+    logger.error({ event: 'auto_populate_resources_exception', id, error: err.message });
+    return res.status(500).json({ error: 'Resource auto-population failed' });
+  }
 };
