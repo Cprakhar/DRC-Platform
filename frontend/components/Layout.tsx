@@ -19,9 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Link href="/official-updates" passHref legacyBehavior>
             <a className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-150 px-2 py-1 rounded-lg hover:bg-blue-50">Official Updates</a>
           </Link>
-          <Link href="/verify-image" passHref legacyBehavior>
-            <a className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-150 px-2 py-1 rounded-lg hover:bg-blue-50">Verify Image</a>
-          </Link>
           {user && (
             <Link href="/create" passHref legacyBehavior>
               <a className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-150 px-2 py-1 rounded-lg hover:bg-blue-50">Create Disaster</a>

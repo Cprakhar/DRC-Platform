@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { getIO } from '../utils/socket';
 import { AuthRequest } from '../middleware/auth';
+import { uploadImageToGCS } from '../utils/gcs';
 
 // Helper to get current ISO timestamp
 const now = () => new Date().toISOString();
@@ -15,6 +16,13 @@ export const createDisaster = async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }
+  let imageUrls: string[] = [];
+  if (req.files && Array.isArray(req.files)) {
+    for (const file of req.files as Express.Multer.File[]) {
+      const url = await uploadImageToGCS(file);
+      imageUrls.push(url);
+    }
+  }
   const disaster = {
     id: uuidv4(),
     title,
@@ -23,6 +31,7 @@ export const createDisaster = async (req: Request, res: Response) => {
     description,
     tags,
     owner_id,
+    images: imageUrls,
     created_at: now(),
     audit_trail: [{ action: 'create', user_id: owner_id, timestamp: now() }],
   };
@@ -79,6 +88,14 @@ export const updateDisaster = async (req: Request, res: Response) => {
     logger.warn({ event: 'disaster_update_forbidden', id, user: authReq.user?.id });
     return res.status(403).json({ error: 'Only the owner can update this disaster' });
   }
+  let imageUrls = current.images || [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    imageUrls = [];
+    for (const file of req.files as Express.Multer.File[]) {
+      const url = await uploadImageToGCS(file);
+      imageUrls.push(url);
+    }
+  }
   const updated = {
     ...current,
     title: title ?? current.title,
@@ -86,6 +103,7 @@ export const updateDisaster = async (req: Request, res: Response) => {
     location: location ?? current.location,
     description: description ?? current.description,
     tags: tags ?? current.tags,
+    images: imageUrls,
     audit_trail: [
       ...(current.audit_trail || []),
       { action: 'update', user_id: owner_id || current.owner_id, timestamp: now() },

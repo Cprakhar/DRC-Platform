@@ -42,6 +42,8 @@ const DisasterEdit: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geocoding, setGeocoding] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
     if (disaster) {
@@ -92,6 +94,12 @@ const DisasterEdit: React.FC = () => {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setImages(files);
+    setImagePreviews(files.map(f => URL.createObjectURL(f)));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -101,21 +109,20 @@ const DisasterEdit: React.FC = () => {
       if (locationCoords) {
         location = `POINT(${locationCoords.lon} ${locationCoords.lat})`;
       }
-      const payload = {
-        title,
-        location_name: locationName,
-        location,
-        tags,
-        description,
-        owner_id: disaster.owner_id
-      };
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('location_name', locationName);
+      formData.append('location', location);
+      formData.append('description', description);
+      formData.append('owner_id', disaster.owner_id);
+      tags.forEach(tag => formData.append('tags[]', tag));
+      images.forEach(img => formData.append('images', img));
       const res = await fetch(`${BACKEND_URL}/disasters/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: user ? `Bearer ${user.token}` : ''
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update disaster');
@@ -186,6 +193,22 @@ const DisasterEdit: React.FC = () => {
           onChange={e => setDescription(e.target.value)}
           required
         />
+        <div>
+          <label className="font-medium text-gray-700 mb-1 block">Upload Images (optional, max 3)</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageChange}
+            className="file-input file-input-bordered w-full"
+            max={3}
+          />
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {imagePreviews.map((src, i) => (
+              <img key={i} src={src} alt="Preview" className="h-20 rounded border" />
+            ))}
+          </div>
+        </div>
         {error && <div className="bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3 rounded">{error}</div>}
         {success && <div className="bg-green-100 text-green-800 border-l-4 border-green-400 p-3 rounded">{success}</div>}
         <button

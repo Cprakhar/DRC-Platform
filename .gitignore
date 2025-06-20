@@ -28,6 +28,7 @@ Thumbs.db
 
 # Misc
 *.log
+gcs-key.json
 
 # Git
 .git/

@@ -15,6 +15,8 @@ const DisasterForm: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const { user } = useUser();
   const router = useRouter();
 
@@ -48,23 +50,21 @@ const DisasterForm: React.FC = () => {
     setLoading(true);
     try {
       if (!locationCoords) throw new Error('Please geocode the location to get coordinates.');
-      // Format location as WKT string: POINT(lon lat)
       const wktLocation = `POINT(${locationCoords.lon} ${locationCoords.lat})`;
-      const payload = {
-        title,
-        location_name: locationName,
-        location: wktLocation,
-        tags,
-        description,
-        owner_id: user?.id
-      };
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('location_name', locationName);
+      formData.append('location', wktLocation);
+      formData.append('description', description);
+      formData.append('owner_id', user?.id || '');
+      tags.forEach(tag => formData.append('tags[]', tag));
+      images.forEach(img => formData.append('images', img));
       const res = await fetch(`${BACKEND_URL}/disasters`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: user ? `Bearer ${user.token}` : ''
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create disaster');
@@ -85,6 +85,12 @@ const DisasterForm: React.FC = () => {
       }
       setTagInput('');
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setImages(files);
+    setImagePreviews(files.map(f => URL.createObjectURL(f)));
   };
 
   return (
@@ -141,6 +147,22 @@ const DisasterForm: React.FC = () => {
         onChange={e => setDescription(e.target.value)}
         required
       />
+      <div>
+        <label className="font-medium text-gray-700 mb-1 block">Upload Images (optional, max 3)</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageChange}
+          className="file-input file-input-bordered w-full"
+          max={3}
+        />
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {imagePreviews.map((src, i) => (
+            <img key={i} src={src} alt="Preview" className="h-20 rounded border" />
+          ))}
+        </div>
+      </div>
       {error && <div className="bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3 rounded">{error}</div>}
       {success && <div className="bg-green-100 text-green-800 border-l-4 border-green-400 p-3 rounded">{success}</div>}
       <button
