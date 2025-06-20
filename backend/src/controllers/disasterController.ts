@@ -51,6 +51,19 @@ export const getDisasters = async (req: Request, res: Response) => {
   res.json(data);
 };
 
+export const getDisasterById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  // Fetch all fields and WKT for location
+  const { data, error } = await supabase
+    .rpc('get_disaster_with_wkt', { disaster_id: id })
+    .single();
+  if (error || !data) {
+    logger.warn({ event: 'disaster_get_by_id_not_found', id, error: error?.message });
+    return res.status(404).json({ error: 'Disaster not found' });
+  }
+  res.json(data);
+};
+
 export const updateDisaster = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { id } = req.params;

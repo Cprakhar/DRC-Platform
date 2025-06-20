@@ -25,9 +25,18 @@ async function extractLocationWithGemini(description: string): Promise<string | 
       ]
     });
     logger.info({ event: 'gemini_api_response', description, gemini_raw: result });
-    const text = result.text;
-    if (text && typeof text === 'string') {
-      return text.trim();
+    // --- FIX: Deduplicate and sanitize Gemini response ---
+    const parts = result?.candidates?.[0]?.content?.parts;
+    let locationName = '';
+    if (Array.isArray(parts) && parts.length > 0) {
+      // Use only the first unique part, filter out undefined
+      const uniqueParts = [...new Set(parts.map(p => (p && p.text ? p.text.trim() : '')).filter(Boolean))];
+      locationName = uniqueParts[0];
+    } else if (result.text && typeof result.text === 'string') {
+      locationName = result.text.trim();
+    }
+    if (locationName) {
+      return locationName;
     }
     return null;
   } catch (err: any) {

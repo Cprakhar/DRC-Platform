@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import {
   createDisaster,
   getDisasters,
+  getDisasterById,
   updateDisaster,
   deleteDisaster
 } from '../controllers/disasterController';
@@ -14,6 +15,7 @@ const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFuncti
 
 router.post('/', authenticate, asyncHandler(createDisaster));
 router.get('/', asyncHandler(getDisasters));
+router.get('/:id', asyncHandler(getDisasterById));
 router.put('/:id', authenticate, asyncHandler(updateDisaster));
 router.delete('/:id', authenticate, requireRole('admin'), asyncHandler(deleteDisaster));
 
