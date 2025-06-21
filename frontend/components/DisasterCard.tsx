@@ -13,12 +13,12 @@ export interface DisasterCardProps {
 const DisasterCard: React.FC<DisasterCardProps> = ({ id, title, location, tags, createdAt, isOwner }) => {
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 mb-4 flex flex-col h-full">
-      <h2 className="text-lg font-bold text-blue-800">{title}</h2>
-      <div className="text-sm text-gray-700 mb-2">{location}</div>
+      <h2 className="text-lg font-bold text-blue-800" title={title} tabIndex={0} aria-label={`Disaster title: ${title}`}>{title}</h2>
+      <div className="text-sm text-gray-700 mb-2" title={location} tabIndex={0} aria-label={`Location: ${location}`}>{location}</div>
       <div className="flex-1" />
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex flex-wrap gap-2 mb-2" aria-label="Tags">
         {tags.map(tag => (
-          <span key={tag} className="inline-block bg-blue-100 text-blue-700 rounded-full px-2 py-1 text-sm">{tag}</span>
+          <span key={tag} className="inline-block bg-blue-100 text-blue-700 rounded-full px-2 py-1 text-sm" tabIndex={0} aria-label={`Tag: ${tag}`}>{tag}</span>
         ))}
       </div>
       <div className="flex items-end justify-between mt-auto">

@@ -145,7 +145,7 @@ Use the following guidelines to protect frontend routes and UI elements:
 - `/frontend` — Next.js frontend (see `frontend-tech-spec.md` for UI details)
 
 ## Notes
-- All disaster data is stored in Supabase/PostgreSQL.
+- All disaster/resource geospatial data is stored and returned as GeoJSON (no WKT/WKB parsing required in backend or frontend).
 - Social media, geocode, and resource results are cached in Supabase for 1 hour.
 - **Rate limiting** is enforced on all major endpoints to prevent abuse (10 requests/minute per IP per route by default).
 - **Fallback logic**: If an external API fails, the app will return cached data if available, or mock data for social media, or a clear error message.

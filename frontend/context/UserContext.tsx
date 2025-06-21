@@ -17,11 +17,15 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to load user from localStorage on mount
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
+    // Try to load user from localStorage on mount (browser only)
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) setUser(JSON.parse(stored));
+    }
+    setLoading(false);
   }, []);
 
   const login = (user: User) => {
@@ -36,7 +40,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider value={{ user, login, logout }}>
-      {children}
+      {!loading && children}
     </UserContext.Provider>
   );
 }

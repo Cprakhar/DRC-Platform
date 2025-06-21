@@ -35,7 +35,15 @@ const ResourcesPage: React.FC = () => {
       .then(res => res.json().then(data => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.error || 'Failed to fetch resources');
-        setResources(data.resources);
+        // Use GeoJSON Point for lat/lon if present
+        setResources(
+          (data.resources || []).map((r: any) => {
+            if (r.location && r.location.type === 'Point' && Array.isArray(r.location.coordinates)) {
+              return { ...r, lon: r.location.coordinates[0], lat: r.location.coordinates[1] };
+            }
+            return r;
+          })
+        );
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));

@@ -94,8 +94,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
         onChange={e => setPassword(e.target.value)}
         required
       />
-      {error && <div className="bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3 rounded">{error}</div>}
-      {success && <div className="bg-green-100 text-green-800 border-l-4 border-green-400 p-3 rounded">{success}</div>}
+      {error && (
+        <div
+          className="bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3 rounded transition-all duration-300 animate-fadeIn"
+          role="alert"
+          aria-live="assertive"
+        >
+          {error}
+        </div>
+      )}
+      {success && (
+        <div
+          className="bg-green-100 text-green-800 border-l-4 border-green-400 p-3 rounded transition-all duration-300 animate-fadeIn"
+          role="status"
+          aria-live="polite"
+        >
+          {success}
+        </div>
+      )}
       <button
         className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 w-full font-semibold"
         type="submit"

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useUser } from '../context/UserContext';
 import L from 'leaflet';
-import { useMap } from 'react-leaflet';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
@@ -49,16 +48,30 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
   const RESOURCES_PER_PAGE = 10;
   const mapRef = useRef<L.Map | null>(null);
 
-  // Helper to parse WKT POINT string
-  function parseWKT(wkt: string) {
-    // Example: "POINT(-73.9845 40.7295)"
-    const match = wkt.match(/POINT\\((-?\\d+\\.?\\d*) (-?\\d+\\.?\\d*)\\)/);
-    if (match) {
-      const lon = parseFloat(match[1]);
-      const lat = parseFloat(match[2]);
-      return { lon, lat };
+  // Helper to parse WKB Point (hex string) to [lon, lat]
+  function parseWKBPoint(wkb: string): [number, number] | undefined {
+    // Only supports 2D points, little endian (01) or big endian (00)
+    if (!wkb || typeof wkb !== 'string' || wkb.length < 42) return undefined;
+    // Remove 0x if present
+    if (wkb.startsWith('0x')) wkb = wkb.slice(2);
+    // WKB: 01 (little endian) or 00 (big endian), 0101000020E6100000...
+    // We'll only handle little endian (01) for now
+    if (wkb.slice(0, 2) !== '01') return undefined;
+    // lon: bytes 10-25, lat: bytes 26-41 (8 bytes each, little endian)
+    const lonHex = wkb.slice(18, 34);
+    const latHex = wkb.slice(34, 50);
+    // Convert hex to float64
+    function hexToFloatLE(hex: string) {
+      const buf = new ArrayBuffer(8);
+      const view = new DataView(buf);
+      for (let i = 0; i < 8; i++) {
+        view.setUint8(i, parseInt(hex.slice(i * 2, i * 2 + 2), 16));
+      }
+      return view.getFloat64(0, true);
     }
-    return { lat: null, lon: null };
+    const lon = hexToFloatLE(lonHex);
+    const lat = hexToFloatLE(latHex);
+    return [lon, lat];
   }
 
   useEffect(() => {
@@ -69,21 +82,26 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
         const res = await fetch(`${BACKEND_URL}/resources/${disasterId}/resources?lat=${lat}&lon=${lon}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to fetch resources');
-        // Parse WKT to lat/lon for each resource, but only if needed
-        const resourcesWithLatLon = data.resources.map((r: any) => {
-          // Use lat/lon if present and valid
-          if (typeof r.lat === 'number' && typeof r.lon === 'number' && !isNaN(r.lat) && !isNaN(r.lon)) {
-            return r;
+        // Map GeoJSON location to flat lat/lon fields, fallback to WKB parsing
+        const resources = (data.resources || []).map((r: any) => {
+          let latVal, lonVal;
+          if (r.location && typeof r.location === 'object' && Array.isArray(r.location.coordinates)) {
+            lonVal = r.location.coordinates[0];
+            latVal = r.location.coordinates[1];
+          } else if (typeof r.location === 'string') {
+            const coords = parseWKBPoint(r.location);
+            if (coords) {
+              lonVal = coords[0];
+              latVal = coords[1];
+            }
           }
-          // If location is a WKT string, parse it
-          if (typeof r.location === 'string' && r.location.startsWith('POINT(')) {
-            const { lat, lon } = parseWKT(r.location);
-            return { ...r, lat, lon };
-          }
-          // If location is a WKB hex string, skip parsing and set lat/lon to null
-          return { ...r, lat: null, lon: null };
+          return {
+            ...r,
+            lat: latVal,
+            lon: lonVal,
+          };
         });
-        setResources(resourcesWithLatLon);
+        setResources(resources);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -190,9 +208,9 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
 
   return (
     <section className="mt-8">
-      <h2 className="text-2xl font-bold mb-6">Nearby Resources</h2>
+      <h2 className="text-2xl font-bold mb-6" tabIndex={0} aria-label="Nearby Resources">Nearby Resources</h2>
       <div className="flex flex-col md:flex-row gap-6">
-        <div className="md:w-1/3 w-full bg-white rounded-2xl shadow-md flex flex-col sticky top-[72px] max-h-[80vh] z-10">
+        <div className="md:w-1/3 w-full bg-white rounded-2xl shadow-md flex flex-col sticky top-[72px] max-h-[80vh] z-10" aria-label="Resource List" role="region" tabIndex={0}>
           {/* Filter and search controls row */}
           <div className="sticky top-0 z-30">
             <div className="bg-white rounded-t-2xl px-4 pt-4 pb-3 flex flex-col gap-2 border-b border-gray-200">
@@ -202,11 +220,13 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
                 className="input input-bordered w-full text-sm"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
+                aria-label="Search resources"
               />
               <select
                 className="input input-bordered w-full text-sm bg-white"
                 value={typeFilter}
                 onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
+                aria-label="Filter by resource type"
               >
                 <option value="">All Types</option>
                 {resourceTypes.map(type => (
@@ -222,6 +242,8 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
                 key={r.id}
                 className={`py-3 px-5 flex flex-col gap-1 rounded cursor-pointer transition-colors duration-150 ${selected === r.id ? 'bg-blue-50' : 'hover:bg-gray-100'}`}
                 onClick={() => { setSelected(r.id); setOpenPopupId(r.id); }}
+                tabIndex={0}
+                aria-label={`Resource: ${r.name}, Type: ${r.type}`}
               >
                 <div className="font-bold text-gray-700 flex items-center justify-between">
                   {r.name}

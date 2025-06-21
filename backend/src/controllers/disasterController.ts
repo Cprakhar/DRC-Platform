@@ -10,9 +10,6 @@ import { autoPopulateResourcesForDisasterId } from './resourceController';
 // Helper to get current ISO timestamp
 const now = () => new Date().toISOString();
 
-// Utility to auto-populate resources for a disaster (no Express req/res dependency)
-// (already imported above)
-
 export const createDisaster = async (req: Request, res: Response) => {
   const { title, location_name, location, description, tags, owner_id } = req.body;
   if (!title || !location_name || !description || !tags || !owner_id) {
@@ -55,7 +52,7 @@ export const createDisaster = async (req: Request, res: Response) => {
 
 export const getDisasters = async (req: Request, res: Response) => {
   const { tag } = req.query;
-  let query = supabase.from('disasters').select('*').order('created_at', { ascending: false });
+  let query = supabase.from('disasters_geojson').select('*').order('created_at', { ascending: false });
   if (tag) {
     query = query.contains('tags', [tag]);
   }
@@ -70,9 +67,11 @@ export const getDisasters = async (req: Request, res: Response) => {
 
 export const getDisasterById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  // Fetch all fields and WKT for location
+  // Fetch all fields from the disasters_geojson view
   const { data, error } = await supabase
-    .rpc('get_disaster_with_wkt', { disaster_id: id })
+    .from('disasters_geojson')
+    .select('*')
+    .eq('id', id)
     .single();
   if (error || !data) {
     logger.warn({ event: 'disaster_get_by_id_not_found', id, error: error?.message });

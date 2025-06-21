@@ -34,18 +34,10 @@ const DisasterDetail: React.FC = () => {
     fetchDisaster();
   }, [id]);
 
-  // Helper to extract coordinates from WKT string
-  function getCoordsFromWKT(wkt: string): { lat: number; lon: number } | null {
-    const match = wkt.match(/POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
-    if (match) {
-      return { lon: parseFloat(match[1]), lat: parseFloat(match[2]) };
-    }
-    return null;
-  }
-
+  // Extract coordinates from GeoJSON Point (no WKT parsing)
   let coords = null;
-  if (disaster && typeof disaster.location_wkt === 'string' && disaster.location_wkt.startsWith('POINT(')) {
-    coords = getCoordsFromWKT(disaster.location_wkt);
+  if (disaster && disaster.location && typeof disaster.location === 'object' && disaster.location.type === 'Point' && Array.isArray(disaster.location.coordinates)) {
+    coords = { lon: disaster.location.coordinates[0], lat: disaster.location.coordinates[1] };
   }
 
   const handleDelete = async () => {

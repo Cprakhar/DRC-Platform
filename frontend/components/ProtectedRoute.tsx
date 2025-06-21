@@ -20,7 +20,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
   }, [user, adminOnly, router]);
 
   if (!user || (adminOnly && user.role !== 'admin')) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[200px]" role="alert" aria-live="assertive">
+        <span className="text-gray-600 text-lg font-medium">Redirecting...</span>
+      </div>
+    );
   }
   return <>{children}</>;
 };

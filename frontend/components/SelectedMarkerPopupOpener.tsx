@@ -12,8 +12,12 @@ const SelectedMarkerPopupOpener: React.FC<Props> = ({ position, open }) => {
   useEffect(() => {
     if (open) {
       map.eachLayer((layer: any) => {
-        if (layer instanceof L.Marker && layer.getLatLng().lat === position[0] && layer.getLatLng().lng === position[1]) {
-          layer.openPopup();
+        if (layer instanceof L.Marker) {
+          const { lat, lng } = layer.getLatLng();
+          // Use toFixed for float comparison tolerance
+          if (lat.toFixed(6) === position[0].toFixed(6) && lng.toFixed(6) === position[1].toFixed(6)) {
+            layer.openPopup();
+          }
         }
       });
     }

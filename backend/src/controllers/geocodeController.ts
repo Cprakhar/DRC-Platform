@@ -94,7 +94,12 @@ export const geocode = async (req: Request, res: Response) => {
   const now = new Date();
   if (cacheData && new Date(cacheData.expires_at) > now) {
     logger.info({ event: 'geocode_cache_hit', location_name });
-    return res.json({ location_name, ...cacheData.value, cached: true });
+    // Add GeoJSON location to cached response if not present
+    let geojson = undefined;
+    if (cacheData.value.lat && cacheData.value.lon) {
+      geojson = { type: 'Point', coordinates: [parseFloat(cacheData.value.lon), parseFloat(cacheData.value.lat)] };
+    }
+    return res.json({ location_name, ...cacheData.value, location: geojson, cached: true });
   }
 
   // 3. Use OpenStreetMap Nominatim for geocoding
@@ -115,6 +120,8 @@ export const geocode = async (req: Request, res: Response) => {
       lon: geo.lon,
       display_name: geo.display_name
     };
+    // Add GeoJSON location
+    const geojson = { type: 'Point', coordinates: [parseFloat(geo.lon), parseFloat(geo.lat)] };
     // 4. Store in cache
     await supabase.from('cache').upsert({
       key: cacheKey,
@@ -122,7 +129,7 @@ export const geocode = async (req: Request, res: Response) => {
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     });
     logger.info({ event: 'geocode_success', location_name, lat: geo.lat, lon: geo.lon });
-    res.json({ location_name, ...result });
+    res.json({ location_name, ...result, location: geojson });
   } catch (err: any) {
     logger.error({ event: 'geocode_error', location_name, error: err.message, axios: err.toJSON ? err.toJSON() : err });
     res.status(500).json({ error: 'Geocoding failed', location_name });

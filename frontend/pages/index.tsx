@@ -23,7 +23,9 @@ const Home: React.FC = () => {
           data.map((d: any) => ({
             id: d.id,
             title: d.title,
-            location: d.location_name || d.location || '',
+            location: d.location_name || (d.location && d.location.type === 'Point' && Array.isArray(d.location.coordinates)
+              ? `Lat: ${d.location.coordinates[1]}, Lon: ${d.location.coordinates[0]}`
+              : ''),
             tags: d.tags || [],
             createdAt: d.created_at,
             isOwner: user && user.id === d.owner_id
