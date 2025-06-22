@@ -11,6 +11,7 @@ interface UserContextType {
   user: User | null;
   login: (user: User) => void;
   logout: () => void;
+  loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -39,8 +40,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, login, logout }}>
-      {!loading && children}
+    <UserContext.Provider value={{ user, login, logout, loading }}>
+      {children}
     </UserContext.Provider>
   );
 }

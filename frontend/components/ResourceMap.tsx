@@ -111,24 +111,6 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
     fetchResources();
   }, [lat, lon, disasterId]);
 
-  const handleDeleteResource = async (rid: string) => {
-    if (!window.confirm('Delete this resource?')) return;
-    try {
-      const res = await fetch(`${BACKEND_URL}/resources/${disasterId}/resources/${rid}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: user ? `Bearer ${user.token}` : ''
-        }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete resource');
-      setResources(r => r.filter(res => res.id !== rid));
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
   // Only create the icon on the client
   const disasterIcon = useMemo(() => {
     if (typeof window === 'undefined') return undefined;

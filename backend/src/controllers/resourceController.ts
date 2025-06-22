@@ -57,60 +57,6 @@ export const getNearbyResources = async (req: Request, res: Response) => {
   }
 };
 
-// POST /disasters/:id/resources (admin only)
-export const createResource = async (req: Request, res: Response) => {
-  const { id } = req.params; // disaster id
-  const { name, type, location } = req.body;
-  if (!name || !type || !location || !location.type || !location.coordinates) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-  // Insert as geography(Point, 4326)
-  const point = `SRID=4326;POINT(${location.coordinates[0]} ${location.coordinates[1]})`;
-  const { data, error } = await supabase.from('resources').insert([
-    {
-      disaster_id: id,
-      name,
-      type,
-      location: point
-    }
-  ]).select().single();
-  if (error) {
-    logger.error({ event: 'resource_create_error', error: error.message });
-    return res.status(500).json({ error: error.message });
-  }
-  logger.info({ event: 'resource_created', id: data.id });
-  getIO().emit('resources_updated', { disaster_id: id });
-  res.status(201).json(data);
-};
-
-// DELETE /disasters/:id/resources/:rid (admin only)
-export const deleteResource = async (req: Request, res: Response) => {
-  const { id, rid } = req.params;
-  const { data, error } = await supabase.from('resources').delete().eq('id', rid).eq('disaster_id', id).select().single();
-  if (error) {
-    logger.error({ event: 'resource_delete_error', error: error.message });
-    return res.status(500).json({ error: error.message });
-  }
-  logger.info({ event: 'resource_deleted', id: rid });
-  getIO().emit('resources_updated', { disaster_id: id });
-  res.json({ message: 'Deleted', id: rid });
-};
-
-// GET /resources (admin only)
-export const getAllResources = async (req: Request, res: Response) => {
-  try {
-    const { data, error } = await supabase.from('resources_geojson').select('*');
-    if (error) {
-      logger.error({ event: 'resource_list_error', error: error.message });
-      return res.status(500).json({ error: error.message });
-    }
-    res.json({ resources: data || [] });
-  } catch (err: any) {
-    logger.error({ event: 'resource_list_exception', error: err.message });
-    res.status(500).json({ error: 'Failed to fetch resources' });
-  }
-};
-
 // Utility to auto-populate resources for a disaster (no Express req/res dependency)
 export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ inserted?: any[]; message?: string; error?: string }> {
   // 1. Get disaster location as GeoJSON
@@ -132,9 +78,9 @@ export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ 
   const query = `
     [out:json][timeout:25];
     (
-      node["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:10000,${lat},${lon});
-      way["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:10000,${lat},${lon});
-      relation["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:10000,${lat},${lon});
+      node["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:${RESOURCE_RADIUS_METERS},${lat},${lon});
+      way["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:${RESOURCE_RADIUS_METERS},${lat},${lon});
+      relation["amenity"~"hospital|shelter|pharmacy|police|fire_station"](around:${RESOURCE_RADIUS_METERS},${lat},${lon});
     );
     out center;
   `;
@@ -178,7 +124,7 @@ export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ 
   const typeCounts: Record<string, number> = {};
   resources = resources.filter((r: any) => {
     typeCounts[r._type] = (typeCounts[r._type] || 0) + 1;
-    return typeCounts[r._type] <= 10;
+    return typeCounts[r._type] <= 20;
   });
   resources.forEach((r: any) => { delete r._dedup_key; delete r._type; });
   if (!resources.length) {
@@ -195,21 +141,3 @@ export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ 
   await supabase.from('cache').delete().like('key', `resources:${id}:%`);
   return { inserted };
 }
-
-// POST /resources/:id/auto-populate (admin only)
-export const autoPopulateResources = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    const result = await autoPopulateResourcesForDisasterId(id);
-    if (result.error) {
-      return res.status(400).json({ error: result.error });
-    }
-    if (result.message) {
-      return res.status(200).json({ message: result.message });
-    }
-    return res.status(201).json({ inserted: result.inserted });
-  } catch (err: any) {
-    logger.error({ event: 'auto_populate_resources_exception', id, error: err.message });
-    return res.status(500).json({ error: 'Resource auto-population failed' });
-  }
-};

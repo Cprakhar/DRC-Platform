@@ -65,12 +65,12 @@ A full-stack MERN application for disaster response, featuring real-time data ag
 - `GET /disasters?tag=...` — List disasters (filter by tag)
 - `PUT /disasters/:id` — Update disaster (owner only)
 - `DELETE /disasters/:id` — Delete disaster (admin only)
-- `GET /disasters/:id/social-media` — Get social media posts (Bluesky, fallback to mock, cached, rate-limited)
 - `POST /geocode` — Extract and geocode location from description (Gemini + OSM, cached, rate-limited)
-- `GET /disasters/:id/resources?lat=...&lon=...` — Geospatial resource lookup (Supabase RPC, cached, rate-limited)
+- `GET /disasters/:id/resources?lat=...&lon=...` — Geospatial resource lookup (public, cached, rate-limited)
 - `GET /disasters/:id/official-updates` — Official updates (FEMA scraping, cached, rate-limited)
-- `POST /disasters/:id/verify-image` — Image verification (Gemini, cached, rate-limited)
-- `GET /disasters/:id/external-resources` — External resources (Overpass API, cached, rate-limited)
+- `GET /disasters/pending` — List all pending disasters (admin only)
+- `POST /disasters/:id/approve` — Approve a pending disaster (admin only)
+- `POST /disasters/:id/reject` — Reject (delete) a pending disaster (admin only)
 - Reports endpoints: create/update/delete (owner only)
 
 ## Frontend Highlights
@@ -93,17 +93,17 @@ A full-stack MERN application for disaster response, featuring real-time data ag
 | /disasters                                    | GET    | Public                     |
 | /disasters/:id                                | PUT    | Owner only                 |
 | /disasters/:id                                | DELETE | Admin only                 |
-| /disasters/:id/social-media                   | GET    | Public                     |
 | /geocode                                      | POST   | Public                     |
 | /disasters/:id/official-updates               | GET    | Public                     |
-| /disasters/:id/verify-image                   | POST   | Public                     |
-| /disasters/:id/external-resources             | GET    | Public                     |
 | /disasters/:id/resources?lat=...&lon=...      | GET    | Public                     |
 | /disasters/:id/reports                        | POST   | Authenticated user         |
 | /disasters/:id/reports/:rid                   | PUT    | Owner only                 |
 | /disasters/:id/reports/:rid                   | DELETE | Owner only                 |
 | /auth/register                                | POST   | Public                     |
 | /auth/login                                   | POST   | Public                     |
+| /disasters/pending                            | GET    | Admin only                 |
+| /disasters/:id/approve                        | POST   | Admin only                 |
+| /disasters/:id/reject                         | POST   | Admin only                 |
 
 - **Authenticated user**: Any logged-in user (JWT required)
 - **Owner only**: Only the creator/owner of the resource
@@ -135,6 +135,21 @@ Use the following guidelines to protect frontend routes and UI elements:
 | Register/login                      | Public                 |
 
 **Tip:** Use your `UserContext`, `ProtectedRoute`, and role checks in the frontend to enforce these protections. Hide or disable UI elements for users who lack the required permissions.
+
+## Admin Review Workflow
+
+- When a contributor creates a disaster, it is set to 'pending' status and not shown publicly.
+- Admins can access a dedicated admin review page in the frontend, listing all pending disasters.
+- Admins can review, approve, or reject each pending disaster directly from this page.
+- Only after admin approval is the disaster visible to the public and triggers resource auto-population.
+- Disasters not reviewed within 7 days are automatically removed **if the backend cleanup script is scheduled to run (e.g., via cron)**. By default, the script does not run unless you set up a scheduled job. Example cron entry:
+
+  ```cron
+  0 2 * * * /usr/bin/node /path/to/your/project/backend/scripts/cleanup_pending_disasters.js >> /path/to/your/project/cleanup.log 2>&1
+  ```
+- If not scheduled, pending disasters will NOT be deleted automatically.
+
+This ensures all disaster reports are vetted by trusted users before being published, using a secure, role-protected web interface for admin review.
 
 ## Project Structure
 - `/backend/src/controllers` — API controllers

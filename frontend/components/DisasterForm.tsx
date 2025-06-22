@@ -12,7 +12,6 @@ const DisasterForm: React.FC = () => {
   const [locationName, setLocationName] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,26 +20,6 @@ const DisasterForm: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const { user } = useUser();
   const router = useRouter();
-
-  const handleGeocode = async () => {
-    setGeocoding(true);
-    setError('');
-    try {
-      const res = await fetch(`${BACKEND_URL}/geocode`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: locationCoords })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Geocoding failed');
-      setLocationCoords({ lat: data.lat, lon: data.lon });
-      setSuccess('Location geocoded!');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setGeocoding(false);
-    }
-  };
 
   // MapPicker callback to update both coords and location name
   const handleMapChange = (coords: { lat: number; lon: number }) => {
@@ -60,21 +39,10 @@ const DisasterForm: React.FC = () => {
     try {
       let coords = locationCoords;
       let locName = locationName;
-      // If user did not use the map, try to extract location using Gemini/geocoding
       if (!coords) {
-        const res = await fetch(`${BACKEND_URL}/geocode`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description: description })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Geocoding failed');
-        if (data.lat && data.lon) {
-          coords = { lat: data.lat, lon: data.lon };
-          locName = data.location || `${data.lat},${data.lon}`;
-        } else {
-          throw new Error('Could not determine location. Please use the map or enter a valid location.');
-        }
+        setError('Please select a location on the map.');
+        setLoading(false);
+        return;
       }
       const wktLocation = `POINT(${coords.lon} ${coords.lat})`;
       const formData = new FormData();

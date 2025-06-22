@@ -4,8 +4,6 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import disasterRoutes from './routes/disasterRoutes';
-import socialMediaRoutes from './routes/socialMediaRoutes';
-import geocodeRoutes from './routes/geocodeRoutes';
 import resourceRoutes from './routes/resourceRoutes';
 import officialUpdatesRoutes from './routes/officialUpdatesRoutes';
 import authRoutes from './routes/authRoutes';
@@ -45,10 +43,8 @@ app.use(express.json());
 
 // Disaster CRUD routes
 app.use('/disasters', disasterRoutes);
-app.use('/disasters', socialMediaRoutes);
 app.use('/disasters', officialUpdatesRoutes);
 app.use('/disasters', reportRoutes);
-app.use('/geocode', geocodeRoutes);
 app.use('/auth', authRoutes);
 // Mount resource routes at /resources (global and disaster-specific)
 app.use('/resources', resourceRoutes);

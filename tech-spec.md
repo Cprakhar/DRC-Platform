@@ -23,7 +23,7 @@
 - Build REST APIs:
     - Disasters: `POST /disasters`, `GET /disasters?tag=flood`, `PUT /disasters/:id`, `DELETE /disasters/:id`
     - Social Media: `GET /disasters/:id/social-media` (mock Twitter API, Twitter API, or Bluesky)
-    - Resources: `GET /disasters/:id/resources?lat=...&lon=...` (Supabase geospatial lookup)
+    - Resources: `GET /disasters/:id/resources?lat=...&lon=...` (Supabase geospatial lookup, **public, read-only**)
     - Updates: `GET /disasters/:id/official-updates` (Browse Page data)
     - Verification: `POST /disasters/:id/verify-image` (Gemini API)
     - Geocoding: `POST /geocode` (extract location with Gemini, convert to lat/lng with mapping service)
@@ -117,3 +117,23 @@
 - Resource: `{ disaster_id: "123", name: "Red Cross Shelter", location_name: "Lower East Side, NYC", type: "shelter" }`
 
 Build fast, test thoroughly, and help coordinate disaster response! 🚀
+
+## Contributor Disaster Creation & Admin Review Workflow
+
+- When a contributor (non-admin) creates a new disaster record, its status is set to 'pending'.
+- Admins receive an email notification that a new disaster is pending review.
+- Admins can access a dedicated admin review page in the frontend, listing all pending disasters with their details.
+- From this page, admins can review, approve, or reject each pending disaster with a single click.
+- The disaster is not rendered (i.e., not visible to the public or in the main UI) until an admin gives the go-signal/approval.
+- **If the disaster is not reviewed and approved by an admin within 7 days, it is automatically removed from the database.**
+- Only after admin approval is the disaster record made visible and available for further actions (resource auto-population, social media monitoring, etc).
+
+This workflow ensures that all disaster reports are vetted by trusted users before being published, maintaining the integrity and reliability of the platform, and prevents stale or unreviewed reports from lingering in the system. The admin review process is now managed through a secure, role-protected web interface for efficiency and auditability, with email notifications to ensure timely review.
+
+- The backend includes a cleanup script that deletes disasters with status 'pending' that are older than 7 days.
+- **Important:** This script must be scheduled (e.g., using cron) to run automatically. By default, it does not run unless you set up a scheduled job. Example cron entry:
+
+  ```cron
+  0 2 * * * /usr/bin/node /path/to/your/project/backend/scripts/cleanup_pending_disasters.js >> /path/to/your/project/cleanup.log 2>&1
+  ```
+- If not scheduled, pending disasters will NOT be deleted automatically.
