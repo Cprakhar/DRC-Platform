@@ -85,18 +85,36 @@ export async function autoPopulateResourcesForDisasterId(id: string): Promise<{ 
     out center;
   `;
   let osmData: { elements: any[] } = { elements: [] };
-  try {
-    const resp = await axios.post(overpassUrl, query, { headers: { 'Content-Type': 'text/plain' } });
-    osmData = resp.data as { elements: any[] };
-  } catch (err: any) {
-    logger.error({
-      event: 'osm_query_failed',
-      error: err.message,
-      response: err.response ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) : undefined,
-      status: err.response?.status,
-      request: err.request ? (err.request.path || err.request) : undefined
-    });
-    return { error: 'Failed to query OSM' };
+  let lastError: any = null;
+  const MAX_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await axios.post(overpassUrl, query, { headers: { 'Content-Type': 'text/plain' } });
+      osmData = resp.data as { elements: any[] };
+      lastError = null;
+      break; // Success, exit retry loop
+    } catch (err: any) {
+      lastError = err;
+      logger.warn({
+        event: 'osm_query_retry',
+        attempt,
+        error: err.message,
+        status: err.response?.status,
+        request: err.request ? (err.request.path || err.request) : undefined
+      });
+      if (attempt === MAX_RETRIES) {
+        logger.error({
+          event: 'osm_query_failed',
+          error: err.message,
+          response: err.response ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) : undefined,
+          status: err.response?.status,
+          request: err.request ? (err.request.path || err.request) : undefined
+        });
+        return { error: 'Failed to query OSM' };
+      }
+      // Exponential backoff
+      await new Promise(res => setTimeout(res, 1000 * attempt));
+    }
   }
   const vagueNames = ['shelter', 'pharmacy', 'hospital', 'police', 'fire_station'];
   let resources = (osmData.elements || []).map((el: any) => {

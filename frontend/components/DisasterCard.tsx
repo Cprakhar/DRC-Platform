@@ -26,11 +26,6 @@ const DisasterCard: React.FC<DisasterCardProps> = ({ id, title, location, tags, 
           <Link href={`/disaster/${id}`} passHref legacyBehavior>
             <a className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 font-semibold">View</a>
           </Link>
-          {isOwner && (
-            <Link href={`/disaster/${id}/edit`} passHref legacyBehavior>
-              <a className="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 hover:bg-gray-300 font-semibold">Edit</a>
-            </Link>
-          )}
         </div>
         <span className="text-xs text-gray-500 whitespace-nowrap ml-2 pb-1">{new Date(createdAt).toLocaleString()}</span>
       </div>

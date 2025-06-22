@@ -94,8 +94,30 @@ export const createDisaster = async (req: Request, res: Response) => {
 };
 
 export const getDisasters = async (req: Request, res: Response) => {
-  const { tag } = req.query;
-  // Only return approved disasters
+  const { tag, mine } = req.query;
+  // If 'mine=1', return all disasters for the current user (any status)
+  if (mine === '1') {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    let query = supabase
+      .from('disasters_geojson')
+      .select('*')
+      .eq('owner_id', authReq.user.id)
+      .order('created_at', { ascending: false });
+    if (tag) {
+      query = query.contains('tags', [tag]);
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error({ event: 'disaster_get_error', error: error.message, tag, owner_id: authReq.user.id });
+      return res.status(500).json({ error: error.message });
+    }
+    logger.info({ event: 'disaster_listed_user', count: data?.length, tag, owner_id: authReq.user.id });
+    return res.json({ disasters: data });
+  }
+  // Default: Only return approved disasters
   let query = supabase.from('disasters_geojson').select('*').eq('status', 'approved').order('created_at', { ascending: false });
   if (tag) {
     query = query.contains('tags', [tag]);
@@ -188,11 +210,20 @@ export const approveDisaster = async (req: Request, res: Response) => {
   const { data: disaster, error } = await supabase.from('disasters').select('*').eq('id', id).single();
   if (error || !disaster) return res.status(404).json({ error: 'Disaster not found' });
   if (disaster.status === 'approved') return res.status(400).json({ error: 'Already approved' });
-  const { data: updated, error: updateError } = await supabase.from('disasters').update({ status: 'approved' }).eq('id', id).select().single();
+  // Add approve action to audit_trail
+  const updated = {
+    ...disaster,
+    status: 'approved',
+    audit_trail: [
+      ...(disaster.audit_trail || []),
+      { action: 'approve', user_id: (req as AuthRequest).user?.id, timestamp: now() },
+    ],
+  };
+  const { data: updatedDisaster, error: updateError } = await supabase.from('disasters').update(updated).eq('id', id).select().single();
   if (updateError) return res.status(500).json({ error: updateError.message });
   autoPopulateResourcesForDisasterId(id).catch(() => {});
-  getIO().emit('disaster_updated', { action: 'approve', disaster: updated });
-  res.json({ message: 'Disaster approved', disaster: updated });
+  getIO().emit('disaster_updated', { action: 'approve', disaster: updatedDisaster });
+  res.json({ message: 'Disaster approved', disaster: updatedDisaster });
 };
 
 // Admin: reject a pending disaster
@@ -201,10 +232,19 @@ export const rejectDisaster = async (req: Request, res: Response) => {
   const { data: disaster, error } = await supabase.from('disasters').select('*').eq('id', id).single();
   if (error || !disaster) return res.status(404).json({ error: 'Disaster not found' });
   if (disaster.status === 'approved') return res.status(400).json({ error: 'Cannot reject an approved disaster' });
-  const { data: deleted, error: delError } = await supabase.from('disasters').delete().eq('id', id).select().single();
-  if (delError) return res.status(500).json({ error: delError.message });
-  getIO().emit('disaster_updated', { action: 'reject', disaster: deleted });
-  res.json({ message: 'Disaster rejected and removed', id });
+  // Set status to 'rejected' and update audit trail
+  const updated = {
+    ...disaster,
+    status: 'rejected',
+    audit_trail: [
+      ...(disaster.audit_trail || []),
+      { action: 'reject', user_id: (req as AuthRequest).user?.id, timestamp: now() },
+    ],
+  };
+  const { data: updatedDisaster, error: updateError } = await supabase.from('disasters').update(updated).eq('id', id).select().single();
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  getIO().emit('disaster_updated', { action: 'reject', disaster: updatedDisaster });
+  res.json({ message: 'Disaster rejected', disaster: updatedDisaster });
 };
 
 // Admin: fetch pending disasters for review
@@ -225,4 +265,44 @@ export const getPendingDisasters = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
   res.json(data);
+};
+
+// Admin: fetch recent (last 30 days) disasters for review, including status and admin info, paginated
+export const getRecentDisastersForAdmin = async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const page = parseInt((req.query.page as string) || '1', 10);
+  const pageSize = parseInt((req.query.pageSize as string) || '20', 10);
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('disasters')
+    .select('*')
+    .in('status', ['pending', 'approved', 'rejected'])
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+
+  if (error) {
+    logger.error({ event: 'disaster_get_recent_admin_error', error: error.message });
+    return res.status(500).json({ error: error.message });
+  }
+
+  // Attach admin info from audit_trail
+  const withAdmin = data.map((d: any) => {
+    let adminAction = null;
+    if (d.status === 'approved') {
+      adminAction = (d.audit_trail || []).reverse().find((a: any) => a.action === 'approve');
+    } else if (d.status === 'rejected') {
+      adminAction = (d.audit_trail || []).reverse().find((a: any) => a.action === 'reject');
+    }
+    return {
+      ...d,
+      admin_action: adminAction || null,
+    };
+  });
+
+  res.json({ disasters: withAdmin });
 };

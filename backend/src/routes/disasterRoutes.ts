@@ -8,9 +8,10 @@ import {
   deleteDisaster,
   approveDisaster,
   rejectDisaster,
-  getPendingDisasters
+  getPendingDisasters,
+  getRecentDisastersForAdmin
 } from '../controllers/disasterController';
-import { authenticate, requireRole } from '../middleware/auth';
+import { authenticate, requireRole, softAuthenticate } from '../middleware/auth';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -19,8 +20,9 @@ const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFuncti
   Promise.resolve(fn(req, res, next)).catch(next);
 
 router.post('/', authenticate, upload.array('images', 3), asyncHandler(createDisaster));
-router.get('/', asyncHandler(getDisasters));
+router.get('/', softAuthenticate, asyncHandler(getDisasters));
 router.get('/pending', authenticate, requireRole('admin'), asyncHandler(getPendingDisasters));
+router.get('/recent', authenticate, requireRole('admin'), asyncHandler(getRecentDisastersForAdmin));
 router.get('/:id', asyncHandler(getDisasterById));
 router.put('/:id', authenticate, upload.array('images', 3), asyncHandler(updateDisaster));
 router.delete('/:id', authenticate, requireRole('admin'), asyncHandler(deleteDisaster));

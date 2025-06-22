@@ -34,16 +34,37 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
             </>
           )}
-          {user && user.role === 'admin' && (
-            <Link href="/resources" passHref legacyBehavior>
-              <a className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-150 px-2 py-1 rounded-lg hover:bg-blue-50" aria-label="Resources">Resources</a>
-            </Link>
-          )}
           {user && (
-            <div className="flex items-center space-x-2 ml-4">
-              <span className="text-sm text-gray-700 font-semibold" tabIndex={0} aria-label={`Logged in as ${user.username}`}>{user.username}</span>
-              <span className={`inline-block bg-green-100 text-green-700 rounded-full px-2 py-1 text-xs ml-1 ${user.role === 'admin' ? 'border border-green-400' : ''}`} tabIndex={0} aria-label={`Role: ${user.role}`}>{user.role}</span>
-              <button onClick={logout} className="ml-2 bg-gray-200 text-gray-800 rounded-lg px-3 py-1 hover:bg-gray-300 text-xs font-semibold" aria-label="Logout">Logout</button>
+            <div className="flex items-center space-x-2 ml-4 relative group">
+              {/* Avatar with initial */}
+              <button
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold text-lg shadow border-2 border-blue-200 select-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-label={`User avatar for ${user.username}`}
+                tabIndex={0}
+                id="user-avatar"
+              >
+                {user.username?.charAt(0).toUpperCase()}
+              </button>
+              {/* Dropdown menu */}
+              <div
+                className="hidden group-focus-within:block group-hover:block absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2"
+                style={{ minWidth: '180px', width: 'max-content', maxWidth: '320px' }}
+              >
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <div className="font-semibold text-gray-800 whitespace-nowrap">{user.username}</div>
+                  <div className={`inline-block bg-green-100 text-green-700 rounded-full px-2 py-1 text-xs mt-1 ${user.role === 'admin' ? 'border border-green-400' : ''}`}>{user.role}</div>
+                </div>
+                <Link href="/contributions" passHref legacyBehavior>
+                  <a className="block px-4 py-2 text-gray-700 hover:bg-blue-50 w-full text-left whitespace-nowrap" aria-label="Contributions">Contributions</a>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-blue-50 whitespace-nowrap"
+                  aria-label="Logout"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           )}
         </div>

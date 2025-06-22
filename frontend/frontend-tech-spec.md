@@ -1,109 +1,82 @@
-# 🌐 Frontend UI Specification: Disaster Response Coordination Platform
+# Frontend Technical Specification – Disaster Response Coordination Platform
 
-## 🧩 Stack
-- **Framework:** [Next.js](https://nextjs.org/)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Icons:** [Lucide](https://lucide.dev/) or [Heroicons](https://heroicons.com/)
-- **Maps:** [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/guides/) or [Leaflet](https://leafletjs.com/)
-- **WebSocket:** `socket.io-client`
-- **Authentication:** JWT-based, login/register UI, role-based UI (admin/contributor)
+## Stack
+- **Framework:** Next.js (React)
+- **Styling:** Tailwind CSS
+- **Icons:** Lucide or Heroicons
+- **Maps:** Mapbox GL JS or Leaflet
+- **WebSocket:** socket.io-client
+- **Authentication:** JWT-based, role-aware UI (admin/contributor)
 
----
+## Design Principles
+- Minimal, modern, and accessible UI inspired by Vercel, Linear, and Notion
+- Desktop-first with responsive mobile support
+- Modular, reusable components and pages
+- Clear feedback for all user actions (forms, API, real-time updates)
+- Secure, role-based navigation and access
 
-## 🎯 Design Goals
-- **Minimal, aesthetic UI** – inspired by Vercel, Linear, and Notion
-- **Desktop-first experience** with responsive adjustments for mobile
-- **Modular pages/components** to test full backend functionality
-- **Authentication flows** (login, register, logout, role-based UI)
-- **Focus on functionality** with clean UX (forms, API feedback, real-time updates)
+## Layout & Pages
+- **Main Layout:**
+  - Sticky top navbar or sidebar (desktop)
+  - Collapsible drawer for mobile
+  - Auth-aware navigation (login/register or user info/logout)
+- **Pages:**
+  - `/` – Dashboard: all disasters
+  - `/create` – Disaster creation form
+  - `/disaster/[id]` – Disaster details, reports, resources
+  - `/verify-image` – Image verification (Gemini API)
+  - `/official-updates` – Aggregated official updates
+  - `/login` – User login
+  - `/register` – User registration
+  - `/contributions` – User's disaster submissions (status-aware)
 
----
+## Core Components
+- **DisasterCard:** Title, location, tags, created date, actions (View, Edit if allowed)
+- **DisasterForm:** Title, location (name/description), tags, description, geocode button, map preview
+- **ReportForm:** Content, image URL, preview, submit
+- **AuthForm:** Login/register, error/success feedback
+- **UserMenu:** User info, role, logout, admin badge
+- **LiveFeed:** Real-time social media, reports, resources (WebSocket)
+- **ResourceMap:** Map with resource markers, type-based coloring
+- **ImageVerifier:** Image URL input, Gemini API result
 
-## 📐 Layout & Pages
+## UI/UX Details
+- **Desktop:** Max width (`max-w-6xl mx-auto`), grid layout, pinned navigation
+- **Mobile:** Hamburger nav, stacked forms, Tailwind responsive classes
+- **Design System:**
+  - Cards: `bg-white rounded-2xl shadow-md p-4`
+  - Inputs: `input input-bordered w-full`
+  - Buttons: `bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700`
+  - Tags: `inline-block bg-blue-100 text-blue-700 rounded-full px-2 py-1 text-sm`
+  - Alerts: `bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3`
+  - Auth Badge: `inline-block bg-green-100 text-green-700 rounded-full px-2 py-1 text-xs ml-2`
 
-### 1. **Main Layout**
-- Sticky top navigation bar or sidebar on desktop
-- Mobile: collapsible drawer/nav icon
-- **Auth-aware navigation** (show login/register or user info/logout)
+## Functional Requirements
+- **Authentication:**
+  - Login, register, logout flows
+  - Role-based UI (admin/contributor)
+- **Disaster Management:**
+  - Create, view, and (if allowed) edit disasters
+  - Contributors see only their submissions on `/contributions`, with status badges
+  - Admins access review dashboard (not `/contributions`)
+- **Admin Review:**
+  - Admin dashboard for reviewing, approving, or rejecting disasters
+  - Status and admin info displayed for each disaster
+- **Resource & Social Media Integration:**
+  - Map and list of resources per disaster
+  - Real-time social media and resource updates via WebSocket
+- **Image Verification:**
+  - Upload or link image, verify via Gemini API, display result
+- **Official Updates:**
+  - Aggregated feed from FEMA, Red Cross, etc.
 
-### 2. **Pages**
-
-| Route                | Purpose                                         |
-|----------------------|-------------------------------------------------|
-| `/`                  | Dashboard with all disasters                   |
-| `/create`            | Form to create a disaster                      |
-| `/disaster/[id]`     | View specific disaster, reports, resources     |
-| `/verify-image`      | Image verification using Gemini API            |
-| `/official-updates`  | Aggregated updates from FEMA, Red Cross, etc.  |
-| `/login`             | User login                                     |
-| `/register`          | User registration                              |
-
----
-
-## 🧱 Core UI Components
-
-### ✅ DisasterCard
-- Shows title, location, tags, created date
-- Button: `View`, `Edit`
-
-### 📝 DisasterForm
-- Title, Location Name/Description, Tags (multi), Description
-- `Geocode` button → `/geocode` API
-- Optional: auto-map preview
-
-### 🧾 ReportForm
-- Fields: content, image URL
-- Image preview
-- Submit → `/reports`
-
-### 🔐 AuthForm
-- Login/register forms
-- Fields: username, password (register: +email)
-- Error/success feedback
-- Submit → `/auth/login` or `/auth/register`
-
-### 👤 UserMenu
-- Shows logged-in user, role, and logout button
-- Admin badge if applicable
-
-### 🛰️ LiveFeed
-- WebSocket real-time stream
-- Social media alerts, new reports, resources
-
-### 🗺️ ResourceMap
-- Map + resource list
-- Query `/resources` with lat/lng
-- Colored markers by type (shelter, hospital, etc.)
-
-### 🖼️ ImageVerifier
-- Input: image URL
-- Output: Gemini response (Authentic / Manipulated)
-- Prompted via `/verify-image`
+## Accessibility & Best Practices
+- All interactive elements are keyboard accessible
+- ARIA labels and roles for forms, buttons, and alerts
+- Responsive and mobile-friendly design
+- Secure handling of JWT and user data
 
 ---
 
-## 🪄 UI Details
-
-### 💻 Desktop-First
-- Max-width: `xl` (e.g., `max-w-6xl mx-auto`)
-- Grid-based layout (2-3 columns)
-- Navigation pinned on left or top
-
-### 📱 Mobile Responsive
-- Collapse nav to hamburger
-- Stack forms vertically
-- Tailwind `sm:`, `md:`, `lg:` responsive classes
-
----
-
-## 🎨 Design System
-
-| Element     | Style Example                            |
-|-------------|------------------------------------------|
-| Cards       | `bg-white rounded-2xl shadow-md p-4`     |
-| Inputs      | `input input-bordered w-full` (Tailwind forms) |
-| Buttons     | `bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700` |
-| Tags        | `inline-block bg-blue-100 text-blue-700 rounded-full px-2 py-1 text-sm` |
-| Alerts      | `bg-yellow-100 text-yellow-800 border-l-4 border-yellow-400 p-3` |
-| Auth Badge  | `inline-block bg-green-100 text-green-700 rounded-full px-2 py-1 text-xs ml-2` |
+This frontend spec ensures a modern, secure, and user-friendly interface that fully exercises the backend's disaster management, review, and resource mapping capabilities.
 

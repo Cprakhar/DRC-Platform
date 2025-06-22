@@ -32,3 +32,20 @@ export function requireRole(role: string) {
     next();
   };
 }
+
+// Soft authentication: sets req.user if token is present, but does not reject if missing/invalid
+export function softAuthenticate(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // No token, just continue
+    return next();
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; username: string; role: string };
+    req.user = decoded;
+  } catch (err) {
+    // Invalid token, ignore and continue as unauthenticated
+  }
+  next();
+}

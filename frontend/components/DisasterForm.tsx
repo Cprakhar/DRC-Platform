@@ -62,8 +62,8 @@ const DisasterForm: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create disaster');
-      setSuccess('Disaster created!');
-      setTimeout(() => router.replace('/'), 1000);
+      setSuccess('Disaster submitted! Your report will be reviewed by an admin.');
+      setTimeout(() => router.replace('/contributions'), 1200);
     } catch (err: any) {
       setError(err.message);
     } finally {

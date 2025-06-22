@@ -1,173 +1,99 @@
 # Disaster Response Coordination Platform
 
-A full-stack MERN application for disaster response, featuring real-time data aggregation, geospatial queries, social media monitoring, and AI-powered location/image analysis.
+A modern, secure, and collaborative platform for disaster reporting, resource mapping, and real-time coordination between contributors and administrators.
 
 ## Features
-- Disaster CRUD (Supabase/PostgreSQL)
-- Location extraction (Google Gemini API) & geocoding (OpenStreetMap Nominatim)
-- Real-time social media monitoring (Bluesky API with mock fallback, Supabase caching)
-- Geospatial resource mapping (Supabase geospatial queries)
-- Official updates aggregation (web scraping)
-- Image verification (Google Gemini API)
-- WebSockets for real-time updates
-- Supabase caching for API responses (TTL: 1 hour)
-- Structured logging with Pino
-- **Rate limiting** on all major endpoints (per-IP, per-route, in-memory)
-- **Fallback logic** for all external APIs (cache, mock data, or error response)
-- **Role-based access** (admin/contributor, with admin set manually in Supabase)
-- **Modern Next.js frontend** with:
-  - Minimal, aesthetic UI (Vercel/Linear-inspired, Tailwind CSS)
-  - Responsive, desktop-first layout
-  - Resource map with filtering, search, and pagination
-  - Sticky map and resource controls for easy navigation
-  - Auth flows, protected routes, and role-based UI
-  - Real-time updates via Socket.IO
+
+- **Disaster Reporting:**
+  - Intuitive form for users to submit disaster reports with geolocation, tags, and images.
+  - Contributors can track the status of their submissions (pending, approved, rejected) on a dedicated `/contributions` page.
+- **Admin Review Workflow:**
+  - Admins review, approve, or reject disaster reports with full audit trail and action history.
+  - Secure admin dashboard with status filtering, pagination, and contributor/admin info.
+- **Resource Mapping:**
+  - Automatic and manual resource mapping using Overpass API with retry logic for reliability.
+- **Authentication & Authorization:**
+  - Secure JWT-based authentication for users and admins.
+  - Role-based access control (RBAC) throughout the platform.
+- **Notifications:**
+  - Email notifications to admins for new submissions.
+  - (Optional) Contributor notifications for approval/rejection.
+- **Modern UI/UX:**
+  - Responsive, accessible, and user-friendly interface with real-time feedback and status badges.
+- **Security:**
+  - Input validation, secure file uploads, and best practices for API and data protection.
 
 ## Tech Stack
-- Node.js, Express.js, TypeScript
-- Supabase (PostgreSQL, JavaScript SDK)
-- Socket.IO
-- Google Gemini API, OpenStreetMap Nominatim
-- Pino (structured logging)
-- **Frontend:** Next.js, Tailwind CSS, React, Leaflet, Lucide/Heroicons
 
-## Setup
-1. Clone the repo and install dependencies:
-   ```bash
-   npm install
-   # (cd frontend && npm install) for frontend
-   ```
-2. Create a `.env` file in `/backend` with:
-   ```env
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   GEMINI_API_KEY=your_gemini_api_key
-   BLUESKY_IDENTIFIER=your_bluesky_username
-   BLUESKY_PASSWORD=your_bluesky_password
-   PORT=4000
-   ```
-3. Build and run the backend:
-   ```bash
-   npm run build && npm start
-   # or for development
-   npm run dev
-   ```
-4. For the frontend:
-   ```bash
-   cd frontend
-   npm run dev
-   # Visit http://localhost:3000
-   ```
-5. Test API endpoints and UI (see below).
+- **Frontend:** Next.js, React, Tailwind CSS
+- **Backend:** Node.js, Express, TypeScript
+- **Database:** PostgreSQL (with PostGIS for geospatial data)
+- **Authentication:** JWT, secure cookies
+- **APIs:** Overpass API (OpenStreetMap), Nominatim
+- **Cloud Storage:** Google Cloud Storage (for images)
 
-## API Endpoints
-- `POST /disasters` — Create disaster
-- `GET /disasters?tag=...` — List disasters (filter by tag)
-- `PUT /disasters/:id` — Update disaster (owner only)
-- `DELETE /disasters/:id` — Delete disaster (admin only)
-- `POST /geocode` — Extract and geocode location from description (Gemini + OSM, cached, rate-limited)
-- `GET /disasters/:id/resources?lat=...&lon=...` — Geospatial resource lookup (public, cached, rate-limited)
-- `GET /disasters/:id/official-updates` — Official updates (FEMA scraping, cached, rate-limited)
-- `GET /disasters/pending` — List all pending disasters (admin only)
-- `POST /disasters/:id/approve` — Approve a pending disaster (admin only)
-- `POST /disasters/:id/reject` — Reject (delete) a pending disaster (admin only)
-- Reports endpoints: create/update/delete (owner only)
+## Setup & Installation
 
-## Frontend Highlights
-- **Dashboard:** List all disasters, view, create, and manage
-- **Disaster View:**
-  - Disaster info, tags, and description
-  - Interactive resource map with custom icons
-  - Resource list with search, filter, and paginated navigation
-  - Sticky controls for map and resource list (desktop)
-- **Authentication:** Login, register, role-based UI, protected routes
-- **Live updates:** Real-time resource and report updates via WebSocket
-- **Image verification:** Upload or paste image URL for AI authenticity check
-- **Official updates:** Aggregated news from FEMA, Red Cross, etc.
+### Prerequisites
+- Node.js (v18+ recommended)
+- PostgreSQL (with PostGIS extension)
+- Google Cloud Storage credentials (for image uploads)
 
-## API Endpoint Access Control
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-org/DRC_Platform.git
+cd DRC_Platform
+```
 
-| Endpoint                                      | Method | Access Level                |
-|-----------------------------------------------|--------|----------------------------|
-| /disasters                                    | POST   | Authenticated user         |
-| /disasters                                    | GET    | Public                     |
-| /disasters/:id                                | PUT    | Owner only                 |
-| /disasters/:id                                | DELETE | Admin only                 |
-| /geocode                                      | POST   | Public                     |
-| /disasters/:id/official-updates               | GET    | Public                     |
-| /disasters/:id/resources?lat=...&lon=...      | GET    | Public                     |
-| /disasters/:id/reports                        | POST   | Authenticated user         |
-| /disasters/:id/reports/:rid                   | PUT    | Owner only                 |
-| /disasters/:id/reports/:rid                   | DELETE | Owner only                 |
-| /auth/register                                | POST   | Public                     |
-| /auth/login                                   | POST   | Public                     |
-| /disasters/pending                            | GET    | Admin only                 |
-| /disasters/:id/approve                        | POST   | Admin only                 |
-| /disasters/:id/reject                         | POST   | Admin only                 |
+### 2. Backend Setup
+```bash
+cd backend
+cp .env.example .env # Fill in DB, JWT, GCS, and email config
+npm install
+npm run migrate # Run DB migrations
+npm run dev # Start backend server
+```
 
-- **Authenticated user**: Any logged-in user (JWT required)
-- **Owner only**: Only the creator/owner of the resource
-- **Admin only**: Only users with the admin role
-- **Public**: No authentication required
+### 3. Frontend Setup
+```bash
+cd ../frontend
+cp .env.example .env # Set NEXT_PUBLIC_BACKEND_URL
+npm install
+npm run dev # Start frontend (Next.js)
+```
 
-Refer to this table to determine which routes should be protected in the frontend.
+### 4. Database
+- Ensure PostgreSQL is running and the PostGIS extension is enabled.
+- Run provided migrations to set up tables and indices.
 
-## Frontend Route Protection
+### 5. Google Cloud Storage
+- Place your `gcs-key.json` in `backend/` and configure the path in `.env`.
 
-Use the following guidelines to protect frontend routes and UI elements:
+### 6. Email (Admin Notifications)
+- Configure SMTP settings in backend `.env` for email notifications.
 
-- **Public**: No protection needed. Anyone can access these pages or actions.
-- **Authenticated user**: Protect with login. Only logged-in users (with a valid JWT) can access these pages or perform these actions.
-- **Owner only**: Protect with login and ownership check. Only the creator/owner of the resource can access or modify. UI should hide or disable actions for non-owners.
-- **Admin only**: Protect with login and admin role check. Only users with the admin role can access or perform these actions. UI should hide or disable actions for non-admins.
+## Usage
+- **Contributors:**
+  - Register, log in, and submit disaster reports via the form.
+  - Track submission status on `/contributions`.
+- **Admins:**
+  - Log in to access the admin dashboard for reviewing, approving, or rejecting reports.
+  - View audit trails and contributor/admin info for each disaster.
 
-### Example Mapping
+## Security Best Practices
+- All API endpoints require authentication.
+- Role-based access enforced on both frontend and backend.
+- File uploads are validated and securely stored.
+- Sensitive credentials are never committed to the repository.
 
-| Frontend Page/Action                | Protection Type         |
-|-------------------------------------|------------------------|
-| View disasters list                 | Public                 |
-| Create disaster                     | Authenticated user     |
-| Edit disaster                       | Owner only             |
-| Delete disaster                     | Admin only             |
-| View social media, geocode, updates | Public                 |
-| Submit report                       | Authenticated user     |
-| Edit/delete report                  | Owner only             |
-| Register/login                      | Public                 |
+## Development & Contribution
+- Follow conventional commit messages and code style guidelines.
+- Use environment variables for all secrets and configuration.
+- PRs are welcome! Please open issues for feature requests or bugs.
 
-**Tip:** Use your `UserContext`, `ProtectedRoute`, and role checks in the frontend to enforce these protections. Hide or disable UI elements for users who lack the required permissions.
-
-## Admin Review Workflow
-
-- When a contributor creates a disaster, it is set to 'pending' status and not shown publicly.
-- Admins can access a dedicated admin review page in the frontend, listing all pending disasters.
-- Admins can review, approve, or reject each pending disaster directly from this page.
-- Only after admin approval is the disaster visible to the public and triggers resource auto-population.
-- Disasters not reviewed within 7 days are automatically removed **if the backend cleanup script is scheduled to run (e.g., via cron)**. By default, the script does not run unless you set up a scheduled job. Example cron entry:
-
-  ```cron
-  0 2 * * * /usr/bin/node /path/to/your/project/backend/scripts/cleanup_pending_disasters.js >> /path/to/your/project/cleanup.log 2>&1
-  ```
-- If not scheduled, pending disasters will NOT be deleted automatically.
-
-This ensures all disaster reports are vetted by trusted users before being published, using a secure, role-protected web interface for admin review.
-
-## Project Structure
-- `/backend/src/controllers` — API controllers
-- `/backend/src/models` — Data models
-- `/backend/src/routes` — Express routes
-- `/backend/src/utils` — Utilities (Supabase client, logger, etc.)
-- `/backend/src/middleware` — Auth, rate limiting, etc.
-- `/frontend` — Next.js frontend (see `frontend-tech-spec.md` for UI details)
-
-## Notes
-- All disaster/resource geospatial data is stored and returned as GeoJSON (no WKT/WKB parsing required in backend or frontend).
-- Social media, geocode, and resource results are cached in Supabase for 1 hour.
-- **Rate limiting** is enforced on all major endpoints to prevent abuse (10 requests/minute per IP per route by default).
-- **Fallback logic**: If an external API fails, the app will return cached data if available, or mock data for social media, or a clear error message.
-- **Role-based access**: Registration creates contributors by default; set `role = 'admin'` manually in Supabase for admin access.
-- Structured logging is enabled for all major events and errors.
-- See `tech-spec.md` and `frontend-tech-spec.md` for full requirements and sample data.
+## License
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-Built with ❤️ using GitHub Copilot.
+For questions or support, contact the maintainers or open an issue on GitHub.
