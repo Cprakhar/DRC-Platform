@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
@@ -7,8 +7,8 @@ import disasterRoutes from './routes/disasterRoutes';
 import resourceRoutes from './routes/resourceRoutes';
 import officialUpdatesRoutes from './routes/officialUpdatesRoutes';
 import authRoutes from './routes/authRoutes';
-import reportRoutes from './routes/reportRoutes';
 import { setIO } from './utils/socket';
+import { cleanupPendingDisasters } from '../scripts/cleanup_pending_disasters';
 
 // Load
 dotenv.config();
@@ -44,7 +44,6 @@ app.use(express.json());
 // Disaster CRUD routes
 app.use('/disasters', officialUpdatesRoutes);
 app.use('/disasters', disasterRoutes);
-app.use('/disasters', reportRoutes);
 app.use('/auth', authRoutes);
 // Mount resource routes at /resources (global and disaster-specific)
 app.use('/resources', resourceRoutes);
@@ -52,6 +51,20 @@ app.use('/resources', resourceRoutes);
 // Basic health check route
 app.get('/', (req, res) => {
   res.send('Disaster Response Coordination Platform backend running.');
+});
+
+// Secure cleanup endpoint for Cloud Scheduler
+app.post('/internal/cleanup-pending-disasters', async (req: Request, res: Response): Promise<void> => {
+  if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
+    res.status(403).send('Forbidden');
+    return;
+  }
+  try {
+    await cleanupPendingDisasters();
+    res.send('Cleanup complete');
+  } catch (e) {
+    res.status(500).send('Cleanup failed');
+  }
 });
 
 // Socket.IO connection
