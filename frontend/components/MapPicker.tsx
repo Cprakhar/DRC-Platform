@@ -27,31 +27,6 @@ const MapPicker: React.FC<MapPickerProps> = ({ value, onChange, showSearch }) =>
   const [searchError, setSearchError] = React.useState('');
   const [suggestions, setSuggestions] = React.useState<{ display_name: string; lat: string; lon: string }[]>([]);
   const [suggestLoading, setSuggestLoading] = React.useState(false);
-  const mapRef = React.useRef<any>(null);
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchError('');
-    setSearchLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/geocode`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: search }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Geocoding failed');
-      if (data.lat && data.lon) {
-        onChange({ lat: data.lat, lon: data.lon });
-      } else {
-        setSearchError('No location found.');
-      }
-    } catch (err: any) {
-      setSearchError(err.message);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);

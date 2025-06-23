@@ -36,7 +36,7 @@ const ContributionsPage = () => {
   // Setup socket connection
   useEffect(() => {
     if (user) {
-      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
+      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL, {
         transports: ['websocket'],
         withCredentials: true,
       });

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useUser } from '../context/UserContext';
 import dynamic from 'next/dynamic';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
 const DisasterForm: React.FC = () => {

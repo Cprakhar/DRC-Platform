@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -11,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     headers['cookie'] = req.headers.cookie as string;
   }
 
-  const backendRes = await fetch('http://localhost:4000/disasters/pending', {
+  const backendRes = await fetch(`${BACKEND_URL}/disasters/pending`, {
     method: req.method,
     headers,
   });

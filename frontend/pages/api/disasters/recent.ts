@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   // Forward all query params
   const query = req.url?.split('?')[1] || '';
-  const url = `${backendUrl}/disasters/recent${query ? `?${query}` : ''}`;
+  const url = `${BACKEND_URL}/disasters/recent${query ? `?${query}` : ''}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

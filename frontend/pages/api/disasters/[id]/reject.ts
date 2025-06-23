@@ -2,8 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
-  const url = `${backendUrl}/disasters/${id}/reject`;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const url = `${BACKEND_URL}/disasters/${id}/reject`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

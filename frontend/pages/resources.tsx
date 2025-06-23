@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
 import { useRouter } from 'next/router';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface Resource {
   id: string;

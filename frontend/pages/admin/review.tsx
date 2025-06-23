@@ -78,7 +78,7 @@ export default function AdminReviewPage() {
   // Setup socket connection
   useEffect(() => {
     if (user && user.role === 'admin') {
-      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
+      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL, {
         transports: ['websocket'],
         withCredentials: true,
       });

@@ -4,7 +4,7 @@ import Layout from '../../components/Layout';
 import { useUser } from '../../context/UserContext';
 import ResourceMap from '../../components/ResourceMap';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const DisasterDetail: React.FC = () => {
   const router = useRouter();

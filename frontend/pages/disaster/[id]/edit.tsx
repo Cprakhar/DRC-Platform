@@ -4,7 +4,7 @@ import Layout from '../../../components/Layout';
 import { useUser } from '../../../context/UserContext';
 import dynamic from 'next/dynamic';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const MapPicker = dynamic(() => import('../../../components/MapPicker'), { ssr: false });
 
 const DisasterEdit: React.FC = () => {
@@ -16,7 +16,6 @@ const DisasterEdit: React.FC = () => {
   const [locationName, setLocationName] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);

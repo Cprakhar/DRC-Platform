@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import DisasterCard, { DisasterCardProps } from '../components/DisasterCard';
 import { useUser } from '../context/UserContext';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const Home: React.FC = () => {
   const [disasters, setDisasters] = useState<DisasterCardProps[]>([]);

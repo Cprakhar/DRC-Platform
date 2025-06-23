@@ -24,7 +24,7 @@ interface ResourceMapProps {
   disasterId: string;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const RESOURCE_TYPE_ICONS: Record<string, string> = {
   hospital: '/resource-icons/hospital.png',
@@ -36,7 +36,6 @@ const RESOURCE_TYPE_ICONS: Record<string, string> = {
 };
 
 const ResourceMap: React.FC<ResourceMapProps> = ({ lat, lon, disasterId }) => {
-  const { user } = useUser();
   const [resources, setResources] = useState<Resource[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

@@ -28,7 +28,7 @@ const OfficialUpdatesPage: React.FC = () => {
 
   // Listen for real-time updates
   useEffect(() => {
-    const s = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
+    const s = io(process.env.NEXT_PUBLIC_BACKEND_URL, {
       transports: ['websocket'],
       withCredentials: true,
     });
