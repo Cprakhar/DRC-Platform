@@ -7,6 +7,6 @@ const router = Router();
 const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-router.get('/:id/official-updates', function (req, res, next) { rateLimit(req, res, next); }, asyncHandler(getOfficialUpdates));
+router.get('/official-updates', function (req, res, next) { rateLimit(req, res, next); }, asyncHandler(getOfficialUpdates));
 
 export default router;

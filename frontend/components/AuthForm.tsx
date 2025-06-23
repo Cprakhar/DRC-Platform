@@ -38,7 +38,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
       setSuccess(mode === 'login' ? 'Login successful!' : 'Registration successful!');
       if (mode === 'login' && data.token && data.user) {
         login({ ...data.user, token: data.token });
-        router.replace('/'); // redirect to dashboard after login
+        // Handle next param and admin role
+        const next = router.query.next as string;
+        if (data.user.role === 'admin' && next === '/admin/review') {
+          router.replace('/admin/review');
+        } else if (data.user.role === 'admin') {
+          router.replace('/admin/review');
+        } else {
+          router.replace(next || '/');
+        }
       }
       if (mode === 'register') {
         // Auto-login after registration
@@ -51,7 +59,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
           const loginData = await loginRes.json();
           if (loginRes.ok && loginData.token && loginData.user) {
             login({ ...loginData.user, token: loginData.token });
-            router.replace('/');
+            // Handle next param and admin role after registration
+            const next = router.query.next as string;
+            if (loginData.user.role === 'admin' && next === '/admin/review') {
+              router.replace('/admin/review');
+            } else if (loginData.user.role === 'admin') {
+              router.replace('/admin/review');
+            } else {
+              router.replace(next || '/');
+            }
           } else {
             setError('Registration succeeded, but auto-login failed. Please log in manually.');
           }

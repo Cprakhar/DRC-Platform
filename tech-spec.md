@@ -1,7 +1,7 @@
 # Disaster Response Coordination Platform – Technical Specification
 
 ## Objective
-A robust, backend-focused platform for disaster response, enabling real-time data aggregation, geospatial resource mapping, and secure, auditable workflows for contributors and administrators. The system leverages AI for location extraction and image verification, integrates with mapping and social media APIs, and enforces strict review and data integrity processes.
+A robust, backend-focused platform for disaster response, enabling real-time data aggregation, geospatial resource mapping, and secure, auditable workflows for contributors and administrators.
 
 ## Core Features
 
@@ -14,43 +14,35 @@ A robust, backend-focused platform for disaster response, enabling real-time dat
    - Use Google Gemini API to extract location names from descriptions.
    - Geocode location names to lat/lng using Nominatim (OpenStreetMap), Google Maps, or Mapbox.
 
-3. **Real-Time Social Media Monitoring**
-   - Fetch and process disaster-related posts from Twitter API, Bluesky, or a mock endpoint.
-   - Real-time updates via WebSockets for new social media reports.
-
-4. **Geospatial Resource Mapping**
+3. **Geospatial Resource Mapping**
    - Use Supabase/PostGIS for geospatial queries (e.g., find resources within 10km).
    - Automatic and manual resource mapping; Overpass API with retry logic for reliability.
 
-5. **Official Updates Aggregation**
-   - Scrape and aggregate updates from government/relief sites (e.g., FEMA, Red Cross) using Cheerio.
-   - Cache responses to handle rate limits.
+4. **Official Updates Aggregation (GDACS)**
+   - The backend scrapes official disaster news from GDACS (https://gdacs.org/Knowledge/archivenews.aspx) using Cheerio.
+   - Only the first page of news is fetched (no pagination).
+   - REST endpoint: `GET /disasters/official-updates` returns the latest news as JSON.
+   - WebSocket: emits `official_updates` event every 60 seconds with the latest news.
+   - Frontend: `/official-updates` page fetches and displays these updates, with real-time UI updates.
+   - Next.js API proxy: `/api/official-updates` forwards requests to the backend.
 
-6. **Image Verification**
-   - Use Google Gemini API to verify authenticity of user-uploaded images.
-   - Store verification status in reports.
-
-7. **Backend Optimization**
-   - Supabase for data storage and caching (with TTL, geospatial indexes, and GIN indexes for tags).
-   - Structured logging, rate limiting, and robust error handling for all external APIs.
-
-8. **Authentication & Authorization**
+5. **Authentication & Authorization**
    - Mock authentication with hard-coded users and roles (admin, contributor).
    - JWT-based authentication and RBAC in production.
 
-9. **Admin Review Workflow**
+6. **Admin Review Workflow**
    - Contributors submit disasters (status: `pending`).
    - Admins receive email notifications, review via secure dashboard, and approve/reject with audit trail.
    - Disasters not reviewed within 7 days are auto-deleted by a scheduled cleanup script.
-   - Only approved disasters are visible and trigger further actions (resource mapping, social monitoring).
+   - Only approved disasters are visible and trigger further actions (resource mapping).
 
-10. **Frontend**
+7. **Frontend**
     - Minimal, modern UI (React/Next.js recommended) for disaster creation, status tracking, admin review, and real-time updates.
     - Accessible, responsive, and role-aware interface.
 
 ## Database Schema (Supabase/PostgreSQL)
 - `disasters`: id, title, location_name, location (GEOGRAPHY), description, tags (TEXT[]), owner_id, status, created_at, audit_trail (JSONB)
-- `reports`: id, disaster_id, user_id, content, image_url, verification_status, created_at
+- `reports`: id, disaster_id, user_id, content, image_url, created_at
 - `resources`: id, disaster_id, name, location_name, location (GEOGRAPHY), type, created_at
 - `cache`: key, value (JSONB), expires_at
 - Indexes: GIST on location, GIN on tags, B-tree on owner_id
@@ -62,20 +54,16 @@ A robust, backend-focused platform for disaster response, enabling real-time dat
 - `DELETE /disasters/:id` – Delete disaster
 - `POST /disasters/:id/approve` – Admin approve
 - `POST /disasters/:id/reject` – Admin reject
-- `GET /disasters/:id/social-media` – Fetch social media reports
 - `GET /disasters/:id/resources` – Geospatial resource lookup
-- `GET /disasters/:id/official-updates` – Official updates
-- `POST /disasters/:id/verify-image` – Image verification
+- `GET /disasters/official-updates` – Official updates
 - `POST /geocode` – Location extraction and geocoding
 
 ## Real-Time & Caching
-- WebSockets (Socket.IO): emit updates for disasters, social media, and resources.
+- WebSockets (Socket.IO): emit updates for disasters and resources.
 - Supabase cache table for all external API responses (TTL: 1 hour).
 
 ## External Integrations
-- **Google Gemini API:** Location extraction, image verification.
 - **Mapping Service:** Nominatim (OpenStreetMap), Google Maps, or Mapbox for geocoding.
-- **Social Media:** Twitter API, Bluesky, or mock endpoint.
 - **Official Updates:** Scraping with Cheerio.
 
 ## Security & Best Practices
@@ -99,7 +87,7 @@ A robust, backend-focused platform for disaster response, enabling real-time dat
 
 ## Sample Data
 - Disaster: `{ title: "NYC Flood", location_name: "Manhattan, NYC", description: "Heavy flooding in Manhattan", tags: ["flood", "urgent"], owner_id: "netrunnerX" }`
-- Report: `{ disaster_id: "123", user_id: "citizen1", content: "Need food in Lower East Side", image_url: "http://example.com/flood.jpg", verification_status: "pending" }`
+- Report: `{ disaster_id: "123", user_id: "citizen1", content: "Need food in Lower East Side", image_url: "http://example.com/flood.jpg" }`
 - Resource: `{ disaster_id: "123", name: "Red Cross Shelter", location_name: "Lower East Side, NYC", type: "shelter" }`
 
 ## Notes

@@ -3,6 +3,7 @@ import { useUser } from '../context/UserContext';
 import Link from 'next/link';
 import clsx from 'clsx';
 import Layout from '../components/Layout';
+import { io, Socket } from 'socket.io-client';
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -30,21 +31,46 @@ const ContributionsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [contributions, setContributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
+  // Setup socket connection
   useEffect(() => {
+    if (user) {
+      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
+        transports: ['websocket'],
+        withCredentials: true,
+      });
+      setSocket(s);
+      s.on('disaster_updated', () => {
+        // Re-fetch contributions when any disaster is updated
+        fetchContributions();
+      });
+      return () => {
+        s.disconnect();
+      };
+    }
+  }, [user]);
+
+  // Fetch contributions logic extracted for reuse
+  const fetchContributions = () => {
     if (!user) return;
     setLoading(true);
     fetch('/api/disasters?mine=1', {
-        headers: {
-            Authorization: user ? `Bearer ${user.token}` : ''
-        },
-        credentials: 'include'
+      headers: {
+        Authorization: user ? `Bearer ${user.token}` : ''
+      },
+      credentials: 'include'
     })
       .then((res) => res.json())
       .then((data) => {
         setContributions(data.disasters || []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchContributions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const filtered =

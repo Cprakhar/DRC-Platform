@@ -24,7 +24,6 @@
   - `/` – Dashboard: all disasters
   - `/create` – Disaster creation form
   - `/disaster/[id]` – Disaster details, reports, resources
-  - `/verify-image` – Image verification (Gemini API)
   - `/official-updates` – Aggregated official updates
   - `/login` – User login
   - `/register` – User registration
@@ -38,7 +37,6 @@
 - **UserMenu:** User info, role, logout, admin badge
 - **LiveFeed:** Real-time social media, reports, resources (WebSocket)
 - **ResourceMap:** Map with resource markers, type-based coloring
-- **ImageVerifier:** Image URL input, Gemini API result
 
 ## UI/UX Details
 - **Desktop:** Max width (`max-w-6xl mx-auto`), grid layout, pinned navigation
@@ -62,13 +60,17 @@
 - **Admin Review:**
   - Admin dashboard for reviewing, approving, or rejecting disasters
   - Status and admin info displayed for each disaster
-- **Resource & Social Media Integration:**
+- **Resource Integration:**
   - Map and list of resources per disaster
-  - Real-time social media and resource updates via WebSocket
-- **Image Verification:**
-  - Upload or link image, verify via Gemini API, display result
+  - Real-time resource updates via WebSocket
 - **Official Updates:**
-  - Aggregated feed from FEMA, Red Cross, etc.
+  - Aggregated feed from GDACS (first page only)
+
+## Official Updates Page
+- `/official-updates` displays the latest official disaster news from GDACS.
+- Fetches updates via `/api/official-updates` (Next.js API proxy).
+- Listens for real-time updates via WebSocket (`official_updates` event).
+- UI updates in real time and is wrapped in the main `Layout` for consistent navigation.
 
 ## Accessibility & Best Practices
 - All interactive elements are keyboard accessible

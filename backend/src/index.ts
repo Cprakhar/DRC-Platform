@@ -42,8 +42,8 @@ app.use(cors({
 app.use(express.json());
 
 // Disaster CRUD routes
-app.use('/disasters', disasterRoutes);
 app.use('/disasters', officialUpdatesRoutes);
+app.use('/disasters', disasterRoutes);
 app.use('/disasters', reportRoutes);
 app.use('/auth', authRoutes);
 // Mount resource routes at /resources (global and disaster-specific)

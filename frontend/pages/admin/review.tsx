@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useUser } from '../../context/UserContext'; // Adjust the import path as necessary
+import { io, Socket } from 'socket.io-client';
 
 interface Disaster {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminReviewPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,7 +39,8 @@ export default function AdminReviewPage() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
+  // Fetch disasters logic as a function
+  const fetchDisasters = () => {
     if (user && user.role === 'admin') {
       setError(null);
       fetch(`/api/disasters/recent?page=${page}&pageSize=${PAGE_SIZE}`, {
@@ -66,7 +69,28 @@ export default function AdminReviewPage() {
         })
         .catch(() => setError('Failed to fetch recent disasters.'));
     }
+  };
+
+  useEffect(() => {
+    fetchDisasters();
   }, [user, page]);
+
+  // Setup socket connection
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      const s = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
+        transports: ['websocket'],
+        withCredentials: true,
+      });
+      setSocket(s);
+      s.on('disaster_updated', (data) => {
+        fetchDisasters();
+      });
+      return () => {
+        s.disconnect();
+      };
+    }
+  }, [user]);
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoading(id + action);
@@ -84,7 +108,7 @@ export default function AdminReviewPage() {
       if (!res.ok) throw new Error('Action failed');
       setSuccess(`Disaster ${action}d successfully.`);
       // Refetch page after action
-      setTimeout(() => setPage(1), 500);
+      fetchDisasters();
     } catch (e) {
       setError(`Failed to ${action} disaster.`);
     } finally {

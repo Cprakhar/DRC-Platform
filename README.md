@@ -23,6 +23,15 @@ A modern, secure, and collaborative platform for disaster reporting, resource ma
 - **Security:**
   - Input validation, secure file uploads, and best practices for API and data protection.
 
+## Official Disaster News (GDACS)
+
+- The backend scrapes the latest official disaster news from the GDACS website (https://gdacs.org/Knowledge/archivenews.aspx) using Cheerio.
+- Only the first page of news is fetched (no pagination).
+- The backend exposes a REST endpoint at `/disasters/official-updates` that returns the latest news as JSON.
+- The backend emits real-time updates via WebSocket (`official_updates` event) every 60 seconds with the latest news.
+- The frontend fetches and displays these updates on the `/official-updates` page, with real-time UI updates and a consistent navbar.
+- The frontend uses a Next.js API proxy route (`/api/official-updates`) to forward requests to the backend.
+
 ## Tech Stack
 
 - **Frontend:** Next.js, React, Tailwind CSS
@@ -79,6 +88,12 @@ npm run dev # Start frontend (Next.js)
 - **Admins:**
   - Log in to access the admin dashboard for reviewing, approving, or rejecting reports.
   - View audit trails and contributor/admin info for each disaster.
+
+## Troubleshooting
+
+- If you see a WebSocket connection error, ensure the backend is running and accessible at the correct port (default: 4000).
+- The backend and frontend must use compatible Socket.IO versions.
+- For local development, set `NEXT_PUBLIC_BACKEND_URL` in the frontend `.env` to `http://localhost:4000`.
 
 ## Security Best Practices
 - All API endpoints require authentication.
