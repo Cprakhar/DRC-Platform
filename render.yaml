@@ -3,6 +3,7 @@ services:
     runtime: docker
     name: drc-backend
     plan: free
+    dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     buildCommand: ''
     envVars:
@@ -38,6 +39,7 @@ services:
     name: drc-frontend
     runtime: docker
     plan: free
+    dockerContext: ./frontend
     dockerfilePath: ./frontend/Dockerfile
     buildCommand: ''
     envVars:
