@@ -46,7 +46,7 @@ services:
       - key: NEXT_PUBLIC_BACKEND_URL
         value: https://drc-backend-si9c.onrender.com
       - key: INTERNAL_BACKEND_URL
-        value: http://drc-backend:4000
+        value: https://drc-backend-si9c.onrender.com
     autoDeploy: true
     healthCheckPath: /
     domain: drc-platform.onrender.com
