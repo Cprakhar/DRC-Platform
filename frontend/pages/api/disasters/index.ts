@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const BACKEND_URL = process.env.INTERNAL_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+
   // Forward all query params and method
   const { method, query, body, headers } = req;
-  const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/disasters${req.url?.replace(/^\/api\/disasters/, '') || ''}`;
+  const url = `${BACKEND_URL}/disasters${req.url?.replace(/^\/api\/disasters/, '') || ''}`;
 
   // Forward cookies and Authorization header if present
   const fetchHeaders: Record<string, string> = {

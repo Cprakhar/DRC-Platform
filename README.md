@@ -112,3 +112,19 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 For questions or support, contact the maintainers or open an issue on GitHub.
+
+### Docker Compose (Local Development)
+- The frontend and backend run in separate containers.
+- The backend is accessible as `http://backend:4000` from other containers, and as `http://localhost:4000` from your browser/host.
+- The frontend uses two environment variables:
+  - `NEXT_PUBLIC_BACKEND_URL` (for browser/client-side requests): set to `http://localhost:4000`
+  - `INTERNAL_BACKEND_URL` (for server-side/API route requests): set to `http://backend:4000`
+- These are set in `docker-compose.yml` for the frontend service.
+- **Do not use `http://backend:4000` in your browser—use `http://localhost:4000`.**
+
+### Next.js API Proxy
+- All Next.js API routes (in `pages/api/`) should use:
+  ```js
+  const BACKEND_URL = process.env.INTERNAL_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+  ```
+- This ensures server-side code in Docker uses the correct backend URL, while client-side code works for local development.

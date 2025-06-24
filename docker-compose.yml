@@ -1,0 +1,33 @@
+services:
+  backend:
+    container_name: drc-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - drc-network
+
+  frontend:
+    container_name: drc-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+      - INTERNAL_BACKEND_URL=http://backend:4000
+    depends_on:
+      - backend
+    networks:
+      - drc-network
+
+networks:
+  drc-network:
+    driver: bridge
