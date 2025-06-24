@@ -16,10 +16,12 @@ RUN npm run build
 # Remove devDependencies for smaller image
 RUN npm prune --production
 
-# Install curl for debugging (optional, remove for production)
-RUN apk add --no-cache curl
+# Add entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port (default 4000)
 EXPOSE 4000
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "run", "start"]

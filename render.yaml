@@ -1,0 +1,52 @@
+services:
+  - type: web
+    runtime: docker
+    name: drc-backend
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    buildCommand: ''
+    startCommand: npm run start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: SUPABASE_URL
+        value: https://vzbkocubjjbvoryibrwl.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6YmtvY3Viampidm9yeWlicndsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDE4OTAsImV4cCI6MjA2NjA3Nzg5MH0.MuUcGKchOQ0Ix3UDHd52IOE8QFyzJIDqN8f7I9XUvE0
+      - key: SMTP_PASS
+        value: asue ytzk sfni mkce
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        value: drcplatform@gmail.com
+      - key: SMTP_FROM
+        value: drcplatform@gmail.com
+      - key: FRONTEND_URL
+        value: http://localhost:3000
+      - key: CRON_SECRET
+        value: 78c6b7442dc3d326bd042ceabba9d7058192429f0730fa756b6576ec2493cec5
+      - key: JWT_SECRET
+        value: 5e4026d262bcd5d179804a45e3c7de9bd0c29fb5b2fb11ea14e9e05a2a11e6a1
+      - key: GCS_KEY_JSON
+        sync: false # Render Secret File: set this to your gcs-key.json secret file
+    autoDeploy: true
+    healthCheckPath: /
+    domain: drc-backend.onrender.com
+
+  - type: web
+    name: drc-frontend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    buildCommand: ''
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_BACKEND_URL
+        value: https://drc-backend.onrender.com
+      - key: INTERNAL_BACKEND_URL
+        value: http://drc-backend:4000
+    autoDeploy: true
+    healthCheckPath: /
+    domain: drc-platform.onrender.com

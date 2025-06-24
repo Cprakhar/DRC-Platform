@@ -50,7 +50,7 @@ A modern, secure, and collaborative platform for disaster reporting, resource ma
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/DRC_Platform.git
+git clone https://github.com/Cprakhar/DRC_Platform.git
 cd DRC_Platform
 ```
 
@@ -59,13 +59,12 @@ cd DRC_Platform
 cd backend
 cp .env.example .env # Fill in DB, JWT, GCS, and email config
 npm install
-npm run migrate # Run DB migrations
 npm run dev # Start backend server
 ```
 
 ### 3. Frontend Setup
 ```bash
-cd ../frontend
+cd frontend
 cp .env.example .env # Set NEXT_PUBLIC_BACKEND_URL
 npm install
 npm run dev # Start frontend (Next.js)
@@ -76,7 +75,8 @@ npm run dev # Start frontend (Next.js)
 - Run provided migrations to set up tables and indices.
 
 ### 5. Google Cloud Storage
-- Place your `gcs-key.json` in `backend/` and configure the path in `.env`.
+- Place your `gcs-key.json` in `backend/` and configure the path in `.env` for local development.
+- **For production (Render.com):** Add your `gcs-key.json` as a Render Secret File and link it to the `GCS_KEY_JSON` environment variable for the backend service. The container will write this secret to disk at startup automatically.
 
 ### 6. Email (Admin Notifications)
 - Configure SMTP settings in backend `.env` for email notifications.
@@ -94,6 +94,13 @@ npm run dev # Start frontend (Next.js)
 - If you see a WebSocket connection error, ensure the backend is running and accessible at the correct port (default: 4000).
 - The backend and frontend must use compatible Socket.IO versions.
 - For local development, set `NEXT_PUBLIC_BACKEND_URL` in the frontend `.env` to `http://localhost:4000`.
+- **API 404 or connectivity issues:**
+  - Ensure `INTERNAL_BACKEND_URL` and `NEXT_PUBLIC_BACKEND_URL` are set correctly for your environment.
+  - For Docker Compose, use `backend` as the service name. For Render.com, use `drc-backend`.
+  - Check that the backend is running and accessible at the expected port.
+- **gcs-key.json not found (production):**
+  - Make sure the Render Secret File is set and mapped to `GCS_KEY_JSON`.
+  - Check backend logs for entrypoint script messages.
 
 ## Security Best Practices
 - All API endpoints require authentication.
@@ -105,13 +112,6 @@ npm run dev # Start frontend (Next.js)
 - Follow conventional commit messages and code style guidelines.
 - Use environment variables for all secrets and configuration.
 - PRs are welcome! Please open issues for feature requests or bugs.
-
-## License
-MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-For questions or support, contact the maintainers or open an issue on GitHub.
 
 ### Docker Compose (Local Development)
 - The frontend and backend run in separate containers.
@@ -128,3 +128,23 @@ For questions or support, contact the maintainers or open an issue on GitHub.
   const BACKEND_URL = process.env.INTERNAL_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
   ```
 - This ensures server-side code in Docker uses the correct backend URL, while client-side code works for local development.
+
+## Production Deployment (Render.com)
+
+- Deploy both frontend and backend using the provided `render.yaml`.
+- All environment variables are set in `render.yaml` under each service.
+- For secrets like `gcs-key.json`, use Render Secret Files and set the `GCS_KEY_JSON` environment variable (see above).
+- The backend uses an entrypoint script to write the secret file to `/app/gcs-key.json` at container startup.
+- `INTERNAL_BACKEND_URL` should be set to `http://drc-backend:4000` for internal service-to-service communication on Render.com.
+- `NEXT_PUBLIC_BACKEND_URL` should be set to the public backend URL (e.g., `https://drc-backend.onrender.com`).
+
+## Environment Variable Best Practices
+
+- **NEXT_PUBLIC_BACKEND_URL**: Used by the frontend for browser/client-side API requests. Should be the public backend URL.
+- **INTERNAL_BACKEND_URL**: Used by the frontend for server-side (API route) requests. Should be the Docker/Render service name and port.
+- **GCS_KEY_JSON**: (Production only) Set as a Render Secret File, not as a plain environment variable.
+- Never commit secrets or credentials to the repository.
+
+---
+## License
+MIT License. See [LICENSE](LICENSE) for details.

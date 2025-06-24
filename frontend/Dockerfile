@@ -15,6 +15,8 @@ COPY . .
 
 ARG NEXT_PUBLIC_BACKEND_URL
 ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+ARG INTERNAL_BACKEND_URL
+ENV INTERNAL_BACKEND_URL=${INTERNAL_BACKEND_URL}
 
 RUN npm run build
 
@@ -30,9 +32,6 @@ COPY --from=builder /app/public ./public
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Install curl for debugging (optional, remove for production)
-RUN apk add --no-cache curl
 
 USER nextjs
 
