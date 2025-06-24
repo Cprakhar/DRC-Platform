@@ -44,7 +44,7 @@ services:
     buildCommand: ''
     envVars:
       - key: NEXT_PUBLIC_BACKEND_URL
-        value: https://drc-backend.onrender.com
+        value: https://drc-backend-si9c.onrender.com
       - key: INTERNAL_BACKEND_URL
         value: http://drc-backend:4000
     autoDeploy: true
