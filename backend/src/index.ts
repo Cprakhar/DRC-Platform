@@ -17,10 +17,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: [
-      'https://drc-frontend.onrender.com', // your frontend domain
-      'https://drc-backend-si9c.onrender.com' // (optional) backend domain for testing
-    ],
+    origin: ['*'],
     methods: ['GET', 'POST']
   }
 });
